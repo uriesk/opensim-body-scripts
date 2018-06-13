@@ -1,6 +1,34 @@
-//### alpha-hud.lsl
+//### hud.lsl
+// script-version: 0.3
 //indentification string of the mesh body
-string gs_ident = "apollo";
+string gs_ident = "athena";
+//setup of feet changing buttons
+//(it is one prim with multiple buttons on it)
+// set gi_linkFeet to 0 to deactivate
+// gv_feetButtonDirection tells button aligment (<1,0,0> = horicontal)
+integer gi_linkFeet = 216;
+integer gi_feetButtonAmount = 4;
+vector gv_feetButtonDirection = <1, 0, 0>;
+//setup of hand nails changing buttons (same as feet)
+integer gi_linkHand = 217;
+integer gi_handButtonAmount = 6;
+vector gv_handButtonDirection = <1, 0, 0>;
+//setup of neck changing buttons (same as feet)
+integer gi_linkNeck = 214;
+integer gi_neckButtonAmount = 6;
+vector gv_neckButtonDirection = <1, 0, 0>;
+//group selection multiButton
+//(it is also one prim with multiple buttons)
+integer gi_linkGroups = 227;
+list gl_groupButtons = ["-1/wAAAA/gDAwA////AAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1/wAAAAAPwAAAAAAA/AAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1AAD//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD42A2AD//w", "-1/wAAAAAAAAAAAAAAAAnPcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1/wAAAAAAAAAAAAAAAAAAD//w/////w//8BAQAQEBAQAQEAAAAAAAAA", "-1/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD+/g/v7+/g/v4AAAAAAAAA"];
+vector gv_groupButtonDirection = <0, 1, 0>;
+//color of the slots counter
+vector gv_counterSaveColor = <0.8, 0.0, 0.0>;
+vector gv_counterUnsavedColor = <0.0,0.0,0.0>;
+//communication channels to body
+integer gi_BodyChannel = -50;
+integer gi_HUDChannel = -51;
+// === Do not edit something below here, if you are not a scripter ===
 //for set-counter and saving sets:
 integer gi_counterSelectedNumber = 1;
 integer gi_counterLinkNumber;
@@ -10,19 +38,57 @@ list gl_savedSets;
 string gs_skinPart = "";
 integer gi_uuidHandle;
 
-setCounterNumber(integer i_prim, integer i_face, integer number)
-{
-    if (number > 16 || number < 1) return;
-    --number;
-    float x_offset = -0.375 + ((number % 4) * 0.25);
-    float y_offset = 0.375 - (llFloor(number / 4) * 0.25);
 
-    llSetLinkPrimitiveParamsFast(i_prim, [PRIM_TEXTURE, i_face, "numbers", <0.25, 0.25, 0.0>, <x_offset, y_offset, 0.0>, 0.0]);
+string multiButton(vector v_touchPosition, string s_commandPrefix, vector v_direction, integer i_buttonAmount)
+{
+    integer button = llFloor(v_touchPosition * v_direction * i_buttonAmount);
+    string ret = s_commandPrefix + (string)button;
+    return ret;
+}
+
+string groupButtons(vector v_touchPosition)
+{
+    string new_desc;
+    integer button = llFloor((1 - v_touchPosition * gv_groupButtonDirection) * llGetListLength(gl_groupButtons));
+    string ret = llList2String(gl_groupButtons, button);
+    if (llGetSubString(ret, 1, 1) == "1")
+    {
+        new_desc = "-2" + llGetSubString(ret, 2, -1);
+    }
+    else
+    {
+        new_desc = "-1" + llGetSubString(ret, 2, -1);
+    }
+    gl_groupButtons = llListReplaceList(gl_groupButtons, (list)new_desc, button, button);
+    return ret;
+}
+
+updateCounterNumber()
+{
+    integer i_selectedNumber = gi_counterSelectedNumber;
+    vector v_color;
+    if (i_selectedNumber > 16 || i_selectedNumber < 1) return;
+    --i_selectedNumber;
+    float x_offset = -0.375 + ((i_selectedNumber % 4) * 0.25);
+    float y_offset = 0.375 - (llFloor(i_selectedNumber / 4) * 0.25);
+
+    if (llListFindList(gl_savedSets, (list)gi_counterSelectedNumber) == -1)
+    {
+        v_color = gv_counterUnsavedColor;
+    }
+    else
+    {
+        v_color = gv_counterSaveColor;
+    }
+
+    llSetLinkPrimitiveParamsFast(gi_counterLinkNumber, [PRIM_TEXTURE, ALL_SIDES, "numbers", <0.25, 0.25, 0.0>, <x_offset, y_offset, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, v_color, 1]);
 }
 
 resetHUD()
 {
-    llRegionSayTo(llGetOwner(), -50, gs_ident + ":Reset");
+    gi_counterSelectedNumber = 1;
+    updateCounterNumber();
+    llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":Reset");
     integer prim1s = llGetNumberOfPrims();
     integer a;
     for( a = 1; a <= prim1s; ++a)
@@ -39,6 +105,17 @@ resetHUD()
             gi_counterLinkNumber = a;
         }
     }
+    integer groupButtonsAmount = llGetListLength(gl_groupButtons);
+    string command;
+    list tmp_list = [];
+    a = 0;
+    while (a < groupButtonsAmount)
+    {
+        command = llList2String(gl_groupButtons, a);
+        tmp_list += (list)("-1" + llGetSubString(command, 2, -1));
+        a++;
+    }
+    gl_groupButtons = tmp_list;
 }
 
 readBase64AlphaString(string s_base64Alpha)
@@ -63,6 +140,10 @@ readBase64AlphaString(string s_base64Alpha)
         if (llGetSubString(s_desc, 0, 0) == "P")
         {
             i_face = (integer)llGetSubString(s_desc, -1, -1);
+            if (i_face == 9)
+            {
+                i_face = 0;
+            }
             i_prim = (integer)llGetSubString(s_desc, 1, -2);
             i_bitPos = (i_prim - 1) * 8 + i_face;
             i_alpha = (llList2Integer(l_intAlphaConf, llFloor(i_bitPos / 32)) >> (31 - (i_bitPos % 32))) & 0x0000001;
@@ -79,57 +160,51 @@ readBase64AlphaString(string s_base64Alpha)
     }
 }
 
-funzionericordacolore(integer num)
+toggleSingleAlpha(integer num, integer face)
 {
-    list value=  llGetLinkPrimitiveParams(num, [PRIM_COLOR, ALL_SIDES]);
-    float alpha= llList2Float(value,1);
-    vector colore= llList2Vector(value,0);
+    list value = llGetLinkPrimitiveParams(num, [PRIM_COLOR, ALL_SIDES]);
+    float alpha = llList2Float(value,1);
+    vector colore = llList2Vector(value,0);
     if(alpha == 1.0)
     {   
-        llSetLinkPrimitiveParamsFast(num, [  PRIM_COLOR,ALL_SIDES, colore, 0]);
+        llSetLinkPrimitiveParamsFast(num, [  PRIM_COLOR, face, colore, 0]);
     }
     else 
     {   
-        llSetLinkPrimitiveParamsFast(num, [  PRIM_COLOR,ALL_SIDES, colore, 1]);
+        llSetLinkPrimitiveParamsFast(num, [  PRIM_COLOR, face, colore, 1]);
     }
 
 }
 
-
-default
+executeCommand(string scelto, integer link, integer face)
 {
-    state_entry()
+    string comando = llGetSubString(scelto, 0, 0);
+
+    if(comando == "P")
     {
-        llListen(-51,"","","");
+        if (link != 0)
+        {
+            toggleSingleAlpha(link, ALL_SIDES);
+        }
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + scelto);
+    }
+    if(comando == "Q")
+    {
+        if (link != 0)
+        {
+            toggleSingleAlpha(link, face);
+        }
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":P" + llGetSubString(scelto, 1, -1) + (string)face);
+    }
+    else if(comando == "R")
+    {
         resetHUD();
     }
-
-    on_rez(integer num)
+    else if(comando == "-")
     {
-        llRegionSayTo(llGetOwner(), -50, gs_ident + ":updatealpha");
-    }
-
-    touch_start(integer num_detected)
-    {
-        integer link = llDetectedLinkNumber(0);
-        integer face=llDetectedTouchFace(0);
-
-        string scelto= llList2String(llGetLinkPrimitiveParams(link, [ PRIM_DESC ]), 0);
-        string comando=llGetSubString(scelto,0,0);
-
-        if(comando == "R")
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + scelto);
+        if (link != 0)
         {
-            resetHUD();
-        }
-        else if(comando == "P")
-        {
-            funzionericordacolore(link);
-            llRegionSayTo(llGetOwner(), -50, gs_ident + ":" + scelto);
-            // llSay(0,scelto);
-        }     
-        else if(comando == "-")
-        {
-            llRegionSayTo(llGetOwner(), -50, gs_ident + ":" + scelto);
             integer i_mode = (integer)llGetSubString(scelto, 1, 1);
             if (i_mode == 1)
             {
@@ -139,63 +214,121 @@ default
             {
                 llSetLinkPrimitiveParamsFast(link, [PRIM_DESC, "-1" + llGetSubString(scelto, 2, -1)]);
             }
-        } 
-        else if(comando == ">")
-        {
-            ++gi_counterSelectedNumber;
-            if(gi_counterSelectedNumber > 16)
-            {
-                gi_counterSelectedNumber = 1;
-            }
-            setCounterNumber(gi_counterLinkNumber, ALL_SIDES, gi_counterSelectedNumber);
         }
-        else if(comando == "<")
+    } 
+    else if(comando == ">")
+    {
+        ++gi_counterSelectedNumber;
+        if(gi_counterSelectedNumber > 16)
         {
-            --gi_counterSelectedNumber;
-            if(gi_counterSelectedNumber < 1)
-            {
-                gi_counterSelectedNumber = 16;
-            }
-            setCounterNumber(gi_counterLinkNumber, ALL_SIDES, gi_counterSelectedNumber);
+            gi_counterSelectedNumber = 1;
         }
-        else if(comando == "S")
+        updateCounterNumber();
+    }
+    else if(comando == "<")
+    {
+        --gi_counterSelectedNumber;
+        if(gi_counterSelectedNumber < 1)
         {
-            integer pos = llListFindList(gl_savedSets, (list)gi_counterSelectedNumber);
-            if (pos != -1)
-            {
-                gl_savedSets = llDeleteSubList(gl_savedSets, pos, pos + 1);
-            }
-            gb_saveNext = TRUE;
-            llRegionSayTo(llGetOwner(), -50, gs_ident + ":updatealpha");
+            gi_counterSelectedNumber = 16;
         }
-        else if(comando == "L")
+        updateCounterNumber();
+    }
+    else if(comando == "S")
+    {
+        integer pos = llListFindList(gl_savedSets, (list)gi_counterSelectedNumber);
+        if (pos != -1)
         {
-            integer pos = llListFindList(gl_savedSets, (list)gi_counterSelectedNumber);
-            if (pos == -1)
-            {
-                llOwnerSay("No Alphas saved yet on slot: " + (string)gi_counterSelectedNumber);
-            }
-            else
-            {
-                llRegionSayTo(llGetOwner(), -50, gs_ident + ":-3" + llList2String(gl_savedSets, pos + 1));
-            }
+            gl_savedSets = llDeleteSubList(gl_savedSets, pos, pos + 1);
         }
-        else if(comando == "U")
+        gb_saveNext = TRUE;
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":updatealpha");
+    }
+    else if(comando == "L")
+    {
+        integer pos = llListFindList(gl_savedSets, (list)gi_counterSelectedNumber);
+        if (pos == -1)
         {
-            gs_skinPart = llGetSubString(scelto, 1, -1);
-            llTextBox(llGetOwner(), "Enter UUID of skin texture for " + gs_skinPart, -81);
-            gi_uuidHandle = llListen(-81, "", llGetOwner(), "");
-            llSetTimerEvent(120);
+            llOwnerSay("No Alphas saved yet on slot: " + (string)gi_counterSelectedNumber);
         }
-        else if(comando == "G")
+        else
         {
-            llRegionSayTo(llGetOwner(), -50, gs_ident + ":getalpha");
+            llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":-4" + llList2String(gl_savedSets, pos + 1));
         }
+    }
+    else if(comando == "U")
+    {
+        gs_skinPart = llGetSubString(scelto, 1, -1);
+        llTextBox(llGetOwner(), "Enter UUID of skin texture for " + gs_skinPart, -81);
+        gi_uuidHandle = llListen(-81, "", llGetOwner(), "");
+        llSetTimerEvent(120);
+    }
+    else if(comando == "G")
+    {
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":getalpha");
+    }
+    else if (comando == "F")
+    {
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + "feet" + llGetSubString(scelto, 1, 1));
+    }
+    else if (comando == "H")
+    {
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + "nails" + llGetSubString(scelto, 1, 1));
+    }
+    else if (comando == "N")
+    {
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + "neck" + llGetSubString(scelto, 1, 1));
+    }
+}
 
+
+default
+{
+    state_entry()
+    {
+        llListen(gi_HUDChannel,"","","");
+        resetHUD();
+    }
+
+    on_rez(integer num)
+    {
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":updatealpha");
+    }
+
+    touch_start(integer num_detected)
+    {
+        integer link = llDetectedLinkNumber(0);
+        integer face = llDetectedTouchFace(0);
         if (face == TOUCH_INVALID_FACE)
         {
             llOwnerSay("Sorry, your viewer doesn't support touched faces.");
+            return;
         }
+
+        string desc;
+        if (link == gi_linkFeet)
+        {
+            desc = multiButton(llDetectedTouchST(0), "F", gv_feetButtonDirection, gi_feetButtonAmount);
+        }
+        else if (link == gi_linkHand)
+        {
+            desc = multiButton(llDetectedTouchST(0), "H", gv_handButtonDirection, gi_handButtonAmount);
+        }
+        else if (link == gi_linkNeck)
+        {
+            desc = multiButton(llDetectedTouchST(0), "N", gv_neckButtonDirection, gi_neckButtonAmount);
+        }
+        else if (link == gi_linkGroups)
+        {
+            desc = groupButtons(llDetectedTouchST(0));
+            link = 0;
+        }
+        else
+        {
+            desc = llList2String(llGetLinkPrimitiveParams(link, [ PRIM_DESC ]), 0);
+        }
+
+        executeCommand(desc, link, face);
     }
 
     timer()
@@ -214,9 +347,9 @@ default
             return;
         }
 
-        if (channe == -51)
+        if (channe == gi_HUDChannel)
         {
-            if(llSubStringIndex(message, gs_ident) != 0)
+            if(llSubStringIndex(message, gs_ident + ":") != 0)
             {
                 return;
             }
@@ -233,6 +366,7 @@ default
                 {
                     gl_savedSets += [gi_counterSelectedNumber, s_currentAlpha];
                     gb_saveNext = FALSE;
+                    updateCounterNumber();
                 }
                 else
                 {
@@ -240,7 +374,7 @@ default
                 }
             }
         }
-        if (channe == -81)
+        else if (channe == -81)
         {
             llListenRemove(gi_uuidHandle);
             llSetTimerEvent(0.0);
