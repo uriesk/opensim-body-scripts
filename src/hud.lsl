@@ -1,26 +1,21 @@
 //### hud.lsl
-// script-version: 0.3
-//indentification string of the mesh body
-string gs_ident = "athena";
+// script-version: 0.4
+//
 //setup of feet changing buttons
 //(it is one prim with multiple buttons on it)
 // set gi_linkFeet to 0 to deactivate
 // gv_feetButtonDirection tells button aligment (<1,0,0> = horicontal)
-integer gi_linkFeet = 216;
 integer gi_feetButtonAmount = 4;
 vector gv_feetButtonDirection = <1, 0, 0>;
 //setup of hand nails changing buttons (same as feet)
-integer gi_linkHand = 217;
 integer gi_handButtonAmount = 6;
 vector gv_handButtonDirection = <1, 0, 0>;
 //setup of neck changing buttons (same as feet)
-integer gi_linkNeck = 214;
 integer gi_neckButtonAmount = 6;
 vector gv_neckButtonDirection = <1, 0, 0>;
 //group selection multiButton
 //(it is also one prim with multiple buttons)
-integer gi_linkGroups = 227;
-list gl_groupButtons = ["-1/wAAAA/gDAwA////AAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1/wAAAAAPwAAAAAAA/AAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1AAD//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD42A2AD//w", "-1/wAAAAAAAAAAAAAAAAnPcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1/wAAAAAAAAAAAAAAAAAAD//w/////w//8BAQAQEBAQAQEAAAAAAAAA", "-1/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD+/g/v7+/g/v4AAAAAAAAA"];
+list gl_groupButtons = ["-1AAAAAA/gDAwA////AADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1AAAAAAAPwAAAAAAA/AAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1AAD//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD42A2AD//w", "-1AAAAAAAAAAAAAAAAAA/P8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1/wAAAAAAAAAAAAAAAAAAD//w/////w//8BAQAQEBAQAQEAAAAAAAAA", "-1/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD+/g/v7+/g/v4AAAAAAAAA"];
 vector gv_groupButtonDirection = <0, 1, 0>;
 //color of the slots counter
 vector gv_counterSaveColor = <0.8, 0.0, 0.0>;
@@ -37,6 +32,8 @@ list gl_savedSets;
 //for choosing UUIDs of Skins:
 string gs_skinPart = "";
 integer gi_uuidHandle;
+//identification string
+string gs_ident;
 
 
 string multiButton(vector v_touchPosition, string s_commandPrefix, vector v_direction, integer i_buttonAmount)
@@ -180,6 +177,28 @@ executeCommand(string scelto, integer link, integer face)
 {
     string comando = llGetSubString(scelto, 0, 0);
 
+    if(comando == "G")
+    {
+        comando = llGetSubString(scelto, 1, 1);
+        if (comando == "F")
+        {
+            scelto = multiButton(llDetectedTouchST(0), "F", gv_feetButtonDirection, gi_feetButtonAmount);
+        }
+        else if (comando == "H")
+        {
+            scelto = multiButton(llDetectedTouchST(0), "H", gv_handButtonDirection, gi_handButtonAmount);
+        }
+        else if (comando == "N")
+        {
+            scelto = multiButton(llDetectedTouchST(0), "N", gv_neckButtonDirection, gi_neckButtonAmount);
+        }
+        else if (comando == "-")
+        {
+            scelto = groupButtons(llDetectedTouchST(0));
+            link = 0;
+        }
+    }
+
     if(comando == "P")
     {
         if (link != 0)
@@ -263,7 +282,7 @@ executeCommand(string scelto, integer link, integer face)
         gi_uuidHandle = llListen(-81, "", llGetOwner(), "");
         llSetTimerEvent(120);
     }
-    else if(comando == "G")
+    else if(comando == "A")
     {
         llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":getalpha");
     }
@@ -288,6 +307,7 @@ default
     {
         llListen(gi_HUDChannel,"","","");
         resetHUD();
+        gs_ident = llList2String(llGetPrimitiveParams([PRIM_DESC]), 0);
     }
 
     on_rez(integer num)
@@ -304,29 +324,7 @@ default
             llOwnerSay("Sorry, your viewer doesn't support touched faces.");
             return;
         }
-
-        string desc;
-        if (link == gi_linkFeet)
-        {
-            desc = multiButton(llDetectedTouchST(0), "F", gv_feetButtonDirection, gi_feetButtonAmount);
-        }
-        else if (link == gi_linkHand)
-        {
-            desc = multiButton(llDetectedTouchST(0), "H", gv_handButtonDirection, gi_handButtonAmount);
-        }
-        else if (link == gi_linkNeck)
-        {
-            desc = multiButton(llDetectedTouchST(0), "N", gv_neckButtonDirection, gi_neckButtonAmount);
-        }
-        else if (link == gi_linkGroups)
-        {
-            desc = groupButtons(llDetectedTouchST(0));
-            link = 0;
-        }
-        else
-        {
-            desc = llList2String(llGetLinkPrimitiveParams(link, [ PRIM_DESC ]), 0);
-        }
+        string desc = llList2String(llGetLinkPrimitiveParams(link, [ PRIM_DESC ]), 0);
 
         executeCommand(desc, link, face);
     }
@@ -380,26 +378,28 @@ default
             llSetTimerEvent(0.0);
             if (gs_skinPart != "")
             {
-                llOwnerSay("skin for " + gs_skinPart);
+                llOwnerSay("Changing skin for " + gs_skinPart);
                 if (gs_skinPart == "Head")
                 {
                     llSay(300301, message);
+                    llSay(-60, "head:" + message);
                 }
                 else if (gs_skinPart == "Upper Body")
                 {
-                    llSay(171800, message);
+                    llSay(-60, "upper:" + message);
                 }
                 else if (gs_skinPart == "Lower Body")
                 {
-                    llSay(171801, message);
+                    llSay(-60, "lower:" + message);
                 }
                 else if (gs_skinPart == "Neck")
                 {
-                    llSay(171802, message);
+                    llSay(-60, "neck:" + message);
                 }
                 else if (gs_skinPart == "Eyes")
                 {
                     llSay(100701, message);
+                    llSay(-60, "eyes:" + message);
                 }
                 gs_skinPart = "";
             }
