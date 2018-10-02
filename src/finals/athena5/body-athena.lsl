@@ -1,17 +1,14 @@
 //### body-single-layer.lsl
-// script-version: 0.6
+// script-version: 0.4
 //indentification string of the mesh body
-string gs_ident = "adonis";
+string gs_ident = "athena";
 //if Ankle Lock is on or off
-integer gb_ankleLock = FALSE;
+integer gb_ankleLock = TRUE;
 //linked faces that get ignored
 //last digit: face number - previous digits: link number
 //if last digit is 9, it is considered as ALL_SIDES of prim
 //(faces from gl_feet, gl_neck and gl_nailsShape are already ignored, no need to set them here again)
-list gl_ignorePrims = ["19", "161", "171"];
-//texture setting strings and the AlphaStrings of the faces they will setup
-//(gl_ignorePrims is NOT ignoured here), use helper script to generate a string
-list gl_textureSets = ["upper", "", "lower", ""];
+list gl_ignorePrims = ["19", "342", "352", "360"];
 //setup upper body texture
 //base64 config string with 1 being relevant face
 string gs_UpperParts = "AP///w///AwA/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAABABAAAAA";
@@ -233,18 +230,9 @@ integer base64FirstOne(string base64)
 
 toggleAlpha(integer num,integer face)
 {
-    llOwnerSay("DEBUG: set face " + (string)num + "/" + (string)face);
     if (face == 9)
     {
-        integer i_cnt = 8;
-        while (i_cnt--)
-        {
-            toggleAlpha(num, i_cnt);
-        }
-    }
-    if (llListFindList(gl_ignorePrims, [(string)num + (string)face]) != -1 || llListFindList(gl_ignorePrims, [(string)num + "9"]) != -1)
-    {
-        return;
+        face = ALL_SIDES;
     }
     list value =  llGetLinkPrimitiveParams(num, [PRIM_COLOR,face]);
     float alpha = llList2Float(value,1);
@@ -309,8 +297,6 @@ readBase64AlphaString(string s_base64alpha, integer mode)
     // 3: Set bits will be toggled
     // 4: Set bits are going to be set to full oppacy
     //    Unset bits are going to be set to transparency
-    // 5: Set bits will be toggled, but either all transparent
-    //    or all to full oppacy
     integer i_partLength = llStringLength(s_base64alpha) / 6;
     integer a = 0;
     integer i_tempAlphaConf;
@@ -338,31 +324,25 @@ readBase64AlphaString(string s_base64alpha, integer mode)
             i_prim = llFloor(i_totalBitCount / 8) + 1;
             i_face = i_totalBitCount % 8;
             i_alpha = (i_tempAlphaConf >> i_bitCount) & 0x00000001;
-            if (i_alpha)
+            if (mode == 1)
             {
-                if (mode == 5)
-                {
-                    if (llList2Float(llGetLinkPrimitiveParams(i_prim, [PRIM_COLOR, i_face]), 1) == 1.0)
-                    {
-                        mode = 1;
-                    }
-                    else
-                    {
-                        mode = 2;
-                    }
-                }
-
-                if (mode == 1)
+                if (i_alpha)
                 {
                     llSetLinkPrimitiveParamsFast(i_prim, [PRIM_COLOR, i_face, <1.0, 1.0, 1.0>, 0.0]);
                 }
-                else if (mode == 2)
+            }
+            else if (mode == 2)
+            {
+                if (i_alpha)
                 {
                     llSetLinkPrimitiveParamsFast(i_prim, [PRIM_COLOR, i_face, <1.0, 1.0, 1.0>, 1.0]);
                 }
-                else if (mode == 3)
+            }
+            else if (mode == 3)
+            {
+                if (i_alpha)
                 {
-                    if (llList2Float(llGetLinkPrimitiveParams(i_prim, [PRIM_COLOR, i_face]), 1) == 1.0)
+                    if(llList2Float(llGetLinkPrimitiveParams(i_prim, [PRIM_COLOR, i_face]), 1) == 1.0)
                     {
                         llSetLinkPrimitiveParamsFast(i_prim, [PRIM_COLOR, i_face, <1.0, 1.0, 1.0>, 0.0]);
                     }
@@ -633,7 +613,6 @@ default
                 gi_trustedItemPointer = 0;
             }
         }
-        llOwnerSay("DEBUG: got message " + message);
 
         string command = llGetSubString(message,0,0);
 
@@ -647,17 +626,9 @@ default
         }
         if (command == "P")
         {
-            list l_faces = llParseString2List(llGetSubString(message, 1, -1), ["-"], []);
-            integer i_length = llGetListLength(l_faces);
-            integer i_linkNumber;
-            integer i_faceNumber;
-            while (i_length--)
-            {
-                message = llList2String(l_faces, i_length);
-                i_linkNumber = (integer)llGetSubString(message, 0, -2);
-                i_faceNumber = (integer)llGetSubString(message, -1, -1);
-                toggleAlpha(i_linkNumber,i_faceNumber);
-            }
+            integer i_linkNumber = (integer)llGetSubString(message, 1, -2);
+            integer i_faceNumber = (integer)llGetSubString(message, -1, -1);
+            toggleAlpha(i_linkNumber,i_faceNumber);
             return;
         }
 

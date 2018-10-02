@@ -1,21 +1,32 @@
 //### hud.lsl
-// script-version: 0.7
+// script-version: 0.4
 //
-//manual mapping of buttons that can't be maped in their descriptions
-list gl_mapping = ["205", "L", "204", "S", "206", "R", "200", "A", "201", ">", "202", "<", "", "150", "ZP169", "151", "ZP179", "155", "ZP199", "156", "ZP189", "174", "G-5AAAAAAAAAAAAAH4AAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAA/A/AAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAAAwA///AAAAAAAAAAAAAAAAAAAA;-5AD//AAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAABz+AAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAA8A8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "152", "P209-219-229-239-249-259-269", "153", "P279-289-299"];
+//setup of feet changing buttons
+//(it is one prim with multiple buttons on it)
+// set gi_linkFeet to 0 to deactivate
+// gv_feetButtonDirection tells button aligment (<1,0,0> = horicontal)
+integer gi_feetButtonAmount = 4;
+vector gv_feetButtonDirection = <1, 0, 0>;
+//setup of hand nails changing buttons (same as feet)
+integer gi_handButtonAmount = 6;
+vector gv_handButtonDirection = <1, 0, 0>;
+//setup of neck changing buttons (same as feet)
+integer gi_neckButtonAmount = 6;
+vector gv_neckButtonDirection = <1, 0, 0>;
+//group selection multiButton
+//(it is also one prim with multiple buttons)
+list gl_groupButtons = ["-1AAAAAA/gDAwA////AADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1AAAAAAAPwAAAAAAA/AAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1AAD//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD42A2AD//w", "-1AAAAAAAAAAAAAAAAAA/P8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "-1/wAAAAAAAAAAAAAAAAAAD//w/////w//8BAQAQEBAQAQEAAAAAAAAA", "-1/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD+/g/v7+/g/v4AAAAAAAAA"];
+vector gv_groupButtonDirection = <0, 1, 0>;
 //color of the slots counter
 vector gv_counterSaveColor = <0.8, 0.0, 0.0>;
 vector gv_counterUnsavedColor = <0.0,0.0,0.0>;
-//link number and face of counter (gets overwritten if there is a link with description "C")
-integer gi_counterLinkNumber = 20;
-integer gi_counterFaceNumber = 3;
 //communication channels to body
 integer gi_BodyChannel = -50;
 integer gi_HUDChannel = -51;
-
 // === Do not edit something below here, if you are not a scripter ===
 //for set-counter and saving sets:
 integer gi_counterSelectedNumber = 1;
+integer gi_counterLinkNumber;
 integer gb_saveNext = FALSE;
 list gl_savedSets;
 //for choosing UUIDs of Skins:
@@ -25,11 +36,28 @@ integer gi_uuidHandle;
 string gs_ident;
 
 
-integer multiButtonNumber(vector v_touchPosition, vector v_dimension)
+string multiButton(vector v_touchPosition, string s_commandPrefix, vector v_direction, integer i_buttonAmount)
 {
-    integer i_vert = llFloor((1 - v_touchPosition.y) * v_dimension.y);
-    integer i_hor = llFloor(v_touchPosition.x * v_dimension.x);
-    return (integer)(i_hor * v_dimension.y + i_vert);
+    integer button = llFloor(v_touchPosition * v_direction * i_buttonAmount);
+    string ret = s_commandPrefix + (string)button;
+    return ret;
+}
+
+string groupButtons(vector v_touchPosition)
+{
+    string new_desc;
+    integer button = llFloor((1 - v_touchPosition * gv_groupButtonDirection) * llGetListLength(gl_groupButtons));
+    string ret = llList2String(gl_groupButtons, button);
+    if (llGetSubString(ret, 1, 1) == "1")
+    {
+        new_desc = "-2" + llGetSubString(ret, 2, -1);
+    }
+    else
+    {
+        new_desc = "-1" + llGetSubString(ret, 2, -1);
+    }
+    gl_groupButtons = llListReplaceList(gl_groupButtons, (list)new_desc, button, button);
+    return ret;
 }
 
 updateCounterNumber()
@@ -50,7 +78,7 @@ updateCounterNumber()
         v_color = gv_counterSaveColor;
     }
 
-    llSetLinkPrimitiveParamsFast(gi_counterLinkNumber, [PRIM_TEXTURE, gi_counterFaceNumber, "numbers", <0.25, 0.25, 0.0>, <x_offset, y_offset, 0.0>, 0.0, PRIM_COLOR, gi_counterFaceNumber, v_color, 1]);
+    llSetLinkPrimitiveParamsFast(gi_counterLinkNumber, [PRIM_TEXTURE, ALL_SIDES, "numbers", <0.25, 0.25, 0.0>, <x_offset, y_offset, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, v_color, 1]);
 }
 
 resetHUD()
@@ -58,16 +86,33 @@ resetHUD()
     gi_counterSelectedNumber = 1;
     updateCounterNumber();
     llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":Reset");
-    integer a = llGetNumberOfPrims();
-    while(a--)
+    integer prim1s = llGetNumberOfPrims();
+    integer a;
+    for( a = 1; a <= prim1s; ++a)
     {
         string scelto = llList2String(llGetLinkPrimitiveParams(a, [ PRIM_DESC ]), 0);
+        list value =  llGetLinkPrimitiveParams(a, [PRIM_COLOR, ALL_SIDES]);
+        vector colore = llList2Vector(value,0);
+        if (llGetSubString(scelto,0,0) == "P")
+        {
+            llSetLinkPrimitiveParamsFast(a, [PRIM_COLOR,ALL_SIDES, colore, 1]);   
+        }
         if(scelto == "C")
         {
             gi_counterLinkNumber = a;
-            gi_counterFaceNumber = ALL_SIDES;
         }
     }
+    integer groupButtonsAmount = llGetListLength(gl_groupButtons);
+    string command;
+    list tmp_list = [];
+    a = 0;
+    while (a < groupButtonsAmount)
+    {
+        command = llList2String(gl_groupButtons, a);
+        tmp_list += (list)("-1" + llGetSubString(command, 2, -1));
+        a++;
+    }
+    gl_groupButtons = tmp_list;
 }
 
 readBase64AlphaString(string s_base64Alpha)
@@ -89,22 +134,14 @@ readBase64AlphaString(string s_base64Alpha)
     for( a = 0; a <= i_primCount; ++a)
     {
         string s_desc = llList2String(llGetLinkPrimitiveParams(a, [ PRIM_DESC ]), 0);
-        string s_command = llGetSubString(s_desc, 0, 1);
-        if (s_command == "ZP")
+        if (llGetSubString(s_desc, 0, 0) == "P")
         {
-            //if multiple faces, just care about first
-            integer i_split = llSubStringIndex(s_desc, "-");
-            if (i_split != -1)
-            {
-                s_desc = llGetSubString(s_desc, 0, i_split - 1);
-            }
             i_face = (integer)llGetSubString(s_desc, -1, -1);
-            //if ALL_SIDES, just care about 0 face
             if (i_face == 9)
             {
                 i_face = 0;
             }
-            i_prim = (integer)llGetSubString(s_desc, 2, -2);
+            i_prim = (integer)llGetSubString(s_desc, 1, -2);
             i_bitPos = (i_prim - 1) * 8 + i_face;
             i_alpha = (llList2Integer(l_intAlphaConf, llFloor(i_bitPos / 32)) >> (31 - (i_bitPos % 32))) & 0x0000001;
             v_color = llList2Vector(llGetLinkPrimitiveParams(a, [PRIM_COLOR, ALL_SIDES]),0);
@@ -117,31 +154,12 @@ readBase64AlphaString(string s_base64Alpha)
                 llSetLinkPrimitiveParamsFast(a, [PRIM_COLOR,ALL_SIDES, v_color, 1]);
             }
         }
-        else if (s_command == "ZQ")
-        {
-            i_prim = (integer)llGetSubString(s_desc, 2, -1);
-            i_face = 8;
-            while (i_face--)
-            {
-                i_bitPos = (i_prim - 1) * 8 + i_face;
-                i_alpha = (llList2Integer(l_intAlphaConf, llFloor(i_bitPos / 32)) >> (31 - (i_bitPos % 32))) & 0x0000001;
-                v_color = llList2Vector(llGetLinkPrimitiveParams(a, [PRIM_COLOR, i_face]),0);
-                if (i_alpha)
-                {
-                    llSetLinkPrimitiveParamsFast(a, [PRIM_COLOR, i_face, v_color, 0]);
-                }
-                else
-                {
-                    llSetLinkPrimitiveParamsFast(a, [PRIM_COLOR, i_face, v_color, 1]);
-                }
-            }
-        }
     }
 }
 
 toggleSingleAlpha(integer num, integer face)
 {
-    list value = llGetLinkPrimitiveParams(num, [PRIM_COLOR, face]);
+    list value = llGetLinkPrimitiveParams(num, [PRIM_COLOR, ALL_SIDES]);
     float alpha = llList2Float(value,1);
     vector colore = llList2Vector(value,0);
     if(alpha == 1.0)
@@ -158,30 +176,43 @@ toggleSingleAlpha(integer num, integer face)
 executeCommand(string scelto, integer link, integer face)
 {
     string comando = llGetSubString(scelto, 0, 0);
-    if(comando == "Z")
-    {
-        toggleSingleAlpha(link, face);
-        scelto = llGetSubString(scelto, 1, -1);
-        comando = llGetSubString(scelto, 0, 0);
-    }
 
     if(comando == "G")
     {
-        list l_btns = llParseStringKeepNulls(llGetSubString(scelto, 1, -1), [";"], []);
-        float i_columns = llGetListLength(l_btns);
-        l_btns = llParseStringKeepNulls(llGetSubString(scelto, 1, -1), [";", "|"], []);
-        float i_rows = llGetListLength(l_btns) / i_columns;
-        scelto = llList2String(l_btns, multiButtonNumber(llDetectedTouchST(0), <i_columns, i_rows, 0>));
-        comando = llGetSubString(scelto, 0, 0);
-        l_btns = [];
+        comando = llGetSubString(scelto, 1, 1);
+        if (comando == "F")
+        {
+            scelto = multiButton(llDetectedTouchST(0), "F", gv_feetButtonDirection, gi_feetButtonAmount);
+        }
+        else if (comando == "H")
+        {
+            scelto = multiButton(llDetectedTouchST(0), "H", gv_handButtonDirection, gi_handButtonAmount);
+        }
+        else if (comando == "N")
+        {
+            scelto = multiButton(llDetectedTouchST(0), "N", gv_neckButtonDirection, gi_neckButtonAmount);
+        }
+        else if (comando == "-")
+        {
+            scelto = groupButtons(llDetectedTouchST(0));
+            link = 0;
+        }
     }
 
     if(comando == "P")
     {
+        if (link != 0)
+        {
+            toggleSingleAlpha(link, ALL_SIDES);
+        }
         llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + scelto);
     }
-    else if(comando == "Q")
+    if(comando == "Q")
     {
+        if (link != 0)
+        {
+            toggleSingleAlpha(link, face);
+        }
         llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":P" + llGetSubString(scelto, 1, -1) + (string)face);
     }
     else if(comando == "R")
@@ -191,11 +222,19 @@ executeCommand(string scelto, integer link, integer face)
     else if(comando == "-")
     {
         llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + scelto);
+        if (link != 0)
+        {
+            integer i_mode = (integer)llGetSubString(scelto, 1, 1);
+            if (i_mode == 1)
+            {
+                llSetLinkPrimitiveParamsFast(link, [PRIM_DESC, "-2" + llGetSubString(scelto, 2, -1)]);
+            }
+            else if (i_mode == 2)
+            {
+                llSetLinkPrimitiveParamsFast(link, [PRIM_DESC, "-1" + llGetSubString(scelto, 2, -1)]);
+            }
+        }
     } 
-    else if (comando == "T")
-    {
-        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + llGetSubString(scelto, 1, -1));
-    }
     else if(comando == ">")
     {
         ++gi_counterSelectedNumber;
@@ -247,6 +286,18 @@ executeCommand(string scelto, integer link, integer face)
     {
         llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":getalpha");
     }
+    else if (comando == "F")
+    {
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + "feet" + llGetSubString(scelto, 1, 1));
+    }
+    else if (comando == "H")
+    {
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + "nails" + llGetSubString(scelto, 1, 1));
+    }
+    else if (comando == "N")
+    {
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":" + "neck" + llGetSubString(scelto, 1, 1));
+    }
 }
 
 
@@ -274,15 +325,6 @@ default
             return;
         }
         string desc = llList2String(llGetLinkPrimitiveParams(link, [ PRIM_DESC ]), 0);
-        //if no description, try to find command in gl_mapping
-        if (desc == "")
-        {
-            integer i_found = llListFindList(gl_mapping, [(string)link + (string)face]) + 1;
-            if (i_found)
-            {
-                desc = llList2String(gl_mapping, i_found);
-            }
-        }
 
         executeCommand(desc, link, face);
     }
@@ -291,6 +333,7 @@ default
     {
         llListenRemove(gi_uuidHandle);
         llSetTimerEvent(0.0);
+        llOwnerSay("Menu timed out.");
     }
  
     listen(integer channe,string name,key id,string message)
