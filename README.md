@@ -54,8 +54,17 @@ Following features are supported:
     A Group button (like one prim above a list of 5 buttons) with own defined behaviour, this can be used for finger nail forms, list of group selection button, for textures or just saving prims, etc. . i.e.: "G>|<" would use the upper half of the prim for the < button and the lower half for the > button.
 5. If some of the buttons can't be set up by description like in 3 (maybe because you need more characters as the description allowes), give them an empty description and map them in the gl\_mapping list in the hud.lsl script. If it is the counter, set the gi\_counterLinkNumber and gi\_counterFaceNumber in the script.
    (example: ["13", "R"] for link 1 face 3 being the reset button)
-6. Put the *body-single-layer.lsl* script into the mesh body
-7. change the gs\_ident string in body-single-layer.lsl to the same string that you set on 3 as description for the HUD
+
+## Setup mesh body to HUD
+1. Put the *body-single-layer.lsl* script into the mesh body
+2. change the gs\_ident string in body-single-layer.lsl to the same string that you set above on 3 as description for the HUD
+3. Generate a gs_alphaFilterMask string with the tools/alphastring.lsl script (instructions are there)
+   The gs_alphaFilterMask tells the script which links/faces to ignore when toggling alphas.
+4. Now you can test the HUD, individual alphas should already be able to get set just fine and the reset button should work
+5. To be able to set textures for upper-body, lower-body, etc., you have to set the name and the alpha-string for it in gl\_textureSets
+   like: ["upper", "\<alpha string\>", "lower", "\<alpha string\>"]
+   You can also use the tools/alphastring.lsl script for generating those.
+
 
 ## Tattoo and clothing layers
 Mesh bodies that provide tattoo and clothing layers in SL are doing that by putting multiple full bodies on top of each other like onion layors. While this is a necessity in SL to be able to sell tattoos and applier clothes for mesh bodies without having to reveal the texture itself, this is of course also causing lots of lag and it is also lots of work to set it up right.
