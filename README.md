@@ -58,12 +58,13 @@ Following features are supported:
 ## Setup mesh body to HUD
 1. Put the *body-single-layer.lsl* script into the mesh body
 2. change the gs\_ident string in body-single-layer.lsl to the same string that you set above on 3 as description for the HUD
-3. Generate a gs_alphaFilterMask string with the tools/alphastring.lsl script (instructions are there)
-   The gs_alphaFilterMask tells the script which links/faces to ignore when toggling alphas.
+3. Generate a gs\_alphaFilterMask string with the tools/alphastring.lsl script (instructions are there)
+   The gs\_alphaFilterMask tells the script which links/faces to ignore when toggling alphas.
 4. Now you can test the HUD, individual alphas should already be able to get set just fine and the reset button should work
 5. To be able to set textures for upper-body, lower-body, etc., you have to set the name and the alpha-string for it in gl\_textureSets
    like: ["upper", "\<alpha string\>", "lower", "\<alpha string\>"]
    You can also use the tools/alphastring.lsl script for generating those.
+6. If you need exclusive selections like having 3 different nail shapes and there should be always one active and it should be able to be changed with commands like "nail0", "nail1", etc. Define the alphas in gl\_toggleSets as 2D array like ["nail", "210,220;211,221;212,222"], which means that the command nail0 sets prim 21 face 0 and prim 22 face 0 to visible and 21/1, 22/1, 21/2 and 22/2 to invisible, and so on.
 
 
 ## Tattoo and clothing layers
