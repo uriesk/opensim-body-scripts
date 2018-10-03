@@ -66,10 +66,14 @@ Following features are supported:
    You can also use the tools/alphastring.lsl script for generating those.
 6. If you need exclusive selections like having 3 different nail shapes and there should be always one active and it should be able to be changed with commands like "nail0", "nail1", etc. Define the alphas in gl\_toggleSets as 2D array like ["nail", "210,220;211,221;212,222"], which means that the command nail0 sets prim 21 face 0 and prim 22 face 0 to visible and 21/1, 22/1, 21/2 and 22/2 to invisible, and so on.
 
-
 ## Tattoo and clothing layers
-Mesh bodies that provide tattoo and clothing layers in SL are doing that by putting multiple full bodies on top of each other like onion layors. While this is a necessity in SL to be able to sell tattoos and applier clothes for mesh bodies without having to reveal the texture itself, this is of course also causing lots of lag and it is also lots of work to set it up right.
-Within the OpenSource community of OpenSim, this is not needed, because you can just take a tattoo layer, put it on your skin texture with photoshop, gimp, whatever, upload it yourself and set it as your skin. Also there is the talk about bake-on-mesh already for years, which would make those onion layers obsolete.
+Mesh bodies that provide tattoo and clothing layers in SL are doing that by putting multiple full bodies on top of each other like onion layors. While this is a necessity in SL to be able to sell tattoos and applier clothes for mesh bodies without having to reveal the texture itself, this is of course also causing lag.
+In OpenSim, this is not neccessarily needed, because you can just take a tattoo layer, put it on your skin texture with photoshop, gimp, whatever, upload it yourself and set it as your skin. Also there is the talk about bake-on-mesh already for years, which would make those onion layers obsolete.
+The scripts might be adjusted in the future to provide also the possibility of layored mesh bodies (which would be rather easy).
 
-The scripts might be adjusted in the future to provide also the possibility of layored mesh bodies, but this is a very low priority right now.
+## Autohide
+It shouldn't be the responsibility of the user to set his alphas right, the clothes themself should tell what alphas they need.
+For this, check out the autohide.lsl script.
 
+## Texture HUD
+The texture-hud.lsl script is for an HUD for selecting textures, it can store as many textures as you want. It has 12 buttons per page, a model that is showing the selected textures and arrow buttons to browse through the textures. 
