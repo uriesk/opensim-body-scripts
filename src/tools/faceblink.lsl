@@ -1,7 +1,7 @@
 //### faceblink.lsl
 //Script to make link numbers blink,
 //helpful for putting things together in order
-integer link = 34;
+integer link = 26;
 
 integer gi_blinkCount;
 integer gi_currentFace = 8;

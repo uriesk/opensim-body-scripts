@@ -5,8 +5,8 @@
 //or the alphaFilterMask (prims that should be ignored) in the body script.
 //
 // Examples:
-//You want to ignore the whole prim with the link number 1 and the face 2 of the link 5 prim,
-//and set this in the gs_alphaFilterMask:
+//Genearte a gs_alphaFilterMask.
+//You want to ignore the whole prim with the link number 1 and the face 2 of the link 5 prim:
 // l_prims = ["19", "52"];
 // l_alpha = [];
 // l_prims_ignore = "";
@@ -30,16 +30,37 @@
 
 // 1. Set your values here:
 // If you don't need something, leave it empty
-list l_prims = []; 
-list l_alpha = ["AP///w//z+/A/AAAAAAAAAAAAAAA/w/////w/////w/wAAAA"];
+list l_prims = ["251", "241", "231", "221", "211"]; 
+list l_alpha = ["AP///w/////w/////w////vwv///gAAAAAAAAP//gA/////w"];
 list l_prims_ignore = [];
-string s_alpha_mask = "/////w/////w/////w////oAoAAA/wAAAAAAAP///wAP///w";
+string s_alpha_mask = "";
 integer i_invert = FALSE;
 // 2. Save the script and put it inside the body, it will print the 
 //    resulting base64 string and delete itself again.
 
 
 //-----------------------------------------------------------------------
+string hexToString(integer bits)
+{
+    //this function is just for testing purpose,
+    //but is still included in the final release, because
+    //of it's low footprint
+    string XDIGITS = "0123456789abcdef";
+    string nybbles;
+    integer cnt = 0;
+    while (cnt < 8)
+    {
+        integer lsn = bits & 0xF;
+        string nybble = llGetSubString(XDIGITS, lsn, lsn);
+        nybbles = nybble + nybbles;
+        bits = bits >> 4;
+        bits = bits & 0xfffFFFF;
+        cnt++;
+    }
+    nybbles = "0x" + nybbles;
+    return nybbles;
+}
+
 string list2Base64(list l_primList)
 {
     //create a list of 0s with the needed length

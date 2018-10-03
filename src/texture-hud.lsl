@@ -1,4 +1,6 @@
 //### texture-hud.lsl
+//can either print the name of the skin via hover text or via dynamic textures
+//currently dynamic textures is commented out
 //HUD for selecting textures
 integer gi_buttonOffset = 4;
 integer gi_frontFace = 4;
@@ -15,18 +17,18 @@ integer gi_headFace = 0;
 integer gi_upperFace = 2;
 integer gi_lowerFace = 3;
 integer gi_curSel;
+/*
 //variables for text
 list gl_textPositions = [<0.183510, 0.821150, 0.000000>, <0.398038, 0.821150, 0.000000>,  <0.602588, 0.819204, 0.000000>, <0.820442, 0.819204, 0.000000>, <0.178521, 0.535110, 0.000000>, <0.404690, 0.544839, 0.000000>, <0.620881, 0.539001, 0.000000>, <0.823768, 0.539001, 0.000000>, <0.173532, 0.260744, 0.000000>, <0.399701, 0.258799, 0.000000>, <0.614229, 0.264636, 0.000000>, <0.818779, 0.260744, 0.000000>];
 integer gi_textureDimension = 1024;
 integer gi_fontSize = 17;
 list gl_textureBuffer;
+*/
 //Skin texture lists
 list gl_ident;
 
 drawButtons()
 {
-    string CommandList = "";
-
     integer i_pageCount = llFloor((gi_itemCount - 1) / 12);
     if (gi_curPage > i_pageCount)
     {
@@ -37,9 +39,12 @@ drawButtons()
         gi_curPage = i_pageCount;
     }
 
+    /*
+    string CommandList = "";
     CommandList = osSetFontSize(CommandList, 24);
     CommandList = osMovePen(CommandList, (integer)llFloor(0.90 * gi_textureDimension), (integer)llFloor(0.05 * gi_textureDimension));
     CommandList = osDrawText(CommandList, (string)(gi_curPage + 1) + "/" + (string)(i_pageCount + 1));
+    */
 
     integer a = 0;
     integer i_item;
@@ -56,9 +61,9 @@ drawButtons()
             {
                 s_texture = NULL_KEY;
             }
-            llSetLinkPrimitiveParamsFast(a + gi_buttonOffset,  	[PRIM_TEXTURE, gi_frontFace, s_texture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, gi_frontFace, <1.0, 1.0, 1.0>, 1.0]);
-            //llSetLinkPrimitiveParamsFast(a + gi_buttonOffset,  	[PRIM_TEXTURE, gi_frontFace, s_item, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, gi_frontFace, <1.0, 1.0, 1.0>, 1.0, PRIM_TEXT, s_item, <0.0, 0.0, 0.0>, 1.0]);
-            //Draw Text
+            //llSetLinkPrimitiveParamsFast(a + gi_buttonOffset,      [PRIM_TEXTURE, gi_frontFace, s_texture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, gi_frontFace, <1.0, 1.0, 1.0>, 1.0]);
+            llSetLinkPrimitiveParamsFast(a + gi_buttonOffset,      [PRIM_TEXTURE, gi_frontFace, s_texture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, gi_frontFace, <1.0, 1.0, 1.0>, 1.0, PRIM_TEXT, s_item, <0.9, 0.9, 0.9>, 1.0]);
+            /*//Draw Text
             CommandList = osSetFontSize( CommandList, gi_fontSize );
             string TextToDraw = llGetSubString(s_item, 0, 15);
             vector Extents = osGetDrawStringSize( "vector", TextToDraw, "Arial", gi_fontSize );
@@ -66,15 +71,16 @@ drawButtons()
             integer xpos = (integer)llFloor(gi_textureDimension * Position.x - ((integer) Extents.x >> 1));
             integer ypos = (integer)llFloor(gi_textureDimension * (1 - Position.y) - ((integer) Extents.y >> 1));
             CommandList = osMovePen( CommandList, xpos, ypos );
-            CommandList = osDrawText( CommandList, TextToDraw );
+            CommandList = osDrawText( CommandList, TextToDraw );*/
         }
         else
         {
-            llSetLinkPrimitiveParamsFast(a + gi_buttonOffset,  	[PRIM_COLOR, gi_frontFace, <1.0, 1.0, 1.0>, 0.0]);
-            //llSetLinkPrimitiveParamsFast(a + gi_buttonOffset,  	[PRIM_COLOR, gi_frontFace, <1.0, 1.0, 1.0>, 0.0, PRIM_TEXT, "", ZERO_VECTOR, 0.0]);
+            //llSetLinkPrimitiveParamsFast(a + gi_buttonOffset,      [PRIM_COLOR, gi_frontFace, <1.0, 1.0, 1.0>, 0.0]);
+            llSetLinkPrimitiveParamsFast(a + gi_buttonOffset,      [PRIM_COLOR, gi_frontFace, <1.0, 1.0, 1.0>, 0.0, PRIM_TEXT, "", ZERO_VECTOR, 0.0]);
         }
         ++a;
     }
+    /*
     key texture = llList2Key(gl_textureBuffer, gi_curPage);
     if (texture == NULL_KEY)
     {
@@ -88,6 +94,7 @@ drawButtons()
     {
         llSetLinkPrimitiveParamsFast(LINK_ROOT, [PRIM_TEXTURE, ALL_SIDES, texture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
     }
+    */
 }
 
 default
@@ -119,6 +126,7 @@ default
         }
         gi_curPage = 0;
         gi_itemCount = llGetListLength(gl_ident);
+        /*
         //initialize buffer for text-textures
         a = 0;
         integer pageCnt = llFloor(gi_itemCount / 12);
@@ -127,6 +135,7 @@ default
             gl_textureBuffer += [NULL_KEY];
             ++a;
         }
+        */
         //draw buttons
         drawButtons();
     }

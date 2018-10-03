@@ -2,7 +2,7 @@
 // script-version: 0.7
 //
 //manual mapping of buttons that can't be maped in their descriptions
-list gl_mapping = ["205", "L", "204", "S", "206", "R", "200", "A", "201", ">", "202", "<", "", "150", "ZP169", "151", "ZP179", "155", "ZP199", "156", "ZP189", "174", "G-5AAAAAAAAAAAAAH4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAA/A/AAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAAAwA///AAAAAAAAAAAAAAAAAAAAAAAAAA;-5AD//AAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAABz+AAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAA8A8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "152", "ZP209-219-229-239-249-259-269", "153", "ZP279-289-299"];
+list gl_mapping = ["205", "L", "204", "S", "206", "R", "200", "A", "201", ">", "202", "<", "150", "ZP169", "151", "ZP179", "155", "ZP199", "156", "ZP189", "174", "G-5AAAAAAAAAAAAAH4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAA/A/AAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAAAwA///AAAAAAAAAAAAAAAAAAAAAAAAAA;-5AD//AAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAABz+AAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAA8A8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "152", "ZP200-210-220-230-240-250-269", "153", "ZP279-289-299"];
 //color of the slots counter
 vector gv_counterSaveColor = <0.8, 0.0, 0.0>;
 vector gv_counterUnsavedColor = <0.0,0.0,0.0>;
@@ -144,7 +144,7 @@ readBase64AlphaString(string s_base64Alpha)
     //same again for mappings
     integer i_hudPrim;
     integer i_hudFace;
-    a = llGetListLength(gl_mapping);
+    a = llGetListLength(gl_mapping) / 2;
     while (a--)
     {
         s_desc = llList2String(gl_mapping, a * 2 + 1);
@@ -166,14 +166,14 @@ readBase64AlphaString(string s_base64Alpha)
             i_prim = (integer)llGetSubString(s_desc, 2, -2);
             i_bitPos = (i_prim - 1) * 8 + i_face;
             i_alpha = (llList2Integer(l_intAlphaConf, llFloor(i_bitPos / 32)) >> (31 - (i_bitPos % 32))) & 0x0000001;
-            v_color = llList2Vector(llGetLinkPrimitiveParams(a, [PRIM_COLOR, i_hudFace]),0);
+            v_color = llList2Vector(llGetLinkPrimitiveParams(i_hudPrim, [PRIM_COLOR, i_hudFace]),0);
             if (i_alpha)
             {
-                llSetLinkPrimitiveParamsFast(a, [PRIM_COLOR, i_hudFace, v_color, 0]);
+                llSetLinkPrimitiveParamsFast(i_hudPrim, [PRIM_COLOR, i_hudFace, v_color, 0]);
             }
             else
             {
-                llSetLinkPrimitiveParamsFast(a, [PRIM_COLOR, i_hudFace, v_color, 1]);
+                llSetLinkPrimitiveParamsFast(i_hudPrim, [PRIM_COLOR, i_hudFace, v_color, 1]);
             }
         }
     }
@@ -376,27 +376,14 @@ default
             if (gs_skinPart != "")
             {
                 llOwnerSay("Changing skin for " + gs_skinPart);
-                if (gs_skinPart == "Head")
+                llRegionSayTo(llGetOwner(), -60, gs_skinPart + ":" + message);
+                if (gs_skinPart == "head")
                 {
                     llSay(300301, message);
-                    llSay(-60, "head:" + message);
                 }
-                else if (gs_skinPart == "Upper Body")
-                {
-                    llSay(-60, "upper:" + message);
-                }
-                else if (gs_skinPart == "Lower Body")
-                {
-                    llSay(-60, "lower:" + message);
-                }
-                else if (gs_skinPart == "Neck")
-                {
-                    llSay(-60, "neck:" + message);
-                }
-                else if (gs_skinPart == "Eyes")
+                else if (gs_skinPart == "eyes")
                 {
                     llSay(100701, message);
-                    llSay(-60, "eyes:" + message);
                 }
                 gs_skinPart = "";
             }

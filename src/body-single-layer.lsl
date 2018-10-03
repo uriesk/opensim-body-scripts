@@ -9,10 +9,10 @@ integer gb_ankleLock = FALSE;
 //linked faces that get ignored on setting alphas
 //A base64 bitmask, the bits for faces to ignore are 0, all other are 1
 //generate it with helper script
-string gs_alphaFilterMask = "AP///w/////w/////w////vwv////w/////w/////w/////w";
+string gs_alphaFilterMask = "AP///w/////w/////w////vwv///gAgICAgAgP//gA/////w";
 //texture setting strings and the Base64Strings of the faces they will setup
 //(gs_alphaFilterMask is NOT ignoured here), use helper script to generate those strings
-list gl_textureSets = ["lower", "AAAAAAAAAAAAAP7+/w////oAoAAAAAAAAAAAAAAAAAAAAAAA", "upper", "AP///w//z+/A/AAAAAAAAAAAAAAA/wAAAAAAAP///wAAAAAA", "neck", "AAAAAAAAAAAAAAAAAAAAAAAAAP//AAAAAAAAAAAAAAAAAAAA", "adonis-handnails", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////w/wAAAA/wAAAA", "adonis-feetnails", "AAAAAAAAAAAAAAAAAAAAAAHwHwAAAAAAAAAAAAAAAAAAAAAA", "adonis-socks", "AAAAAAAAAAAAAAAAAAAAAAQAQAAAAAAAAAAAAAAAAAAAAAAA"];
+list gl_textureSets = ["lower", "AAAAAAAAAAAAAP7+/w////oAoAAAAAAAAAAAAAAAAAAAAAAA", "upper", "AP///w//z+/A/AAAAAAAAAAAAAAA/wAAAAAAAP///wAAAAAA", "neck", "AAAAAAAAAAAAAAAAAAAAAAAAAP//AAAAAAAAAAAAAAAAAAAA", "adonis-handnails", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////w/wAAAA/wAAAA", "adonis-feetnails", "AAAAAAAAAAAAAAAAAAAAAAHwHwAAAAAAAAAAAAAAAAAAAAAA", "adonis-socks", "AP///w/////w/////w////vwv////w/////w/////w/////w"];
 //sets to toggle exclusively
 list gl_toggleSets = [];
 //main communication Channel
