@@ -2,7 +2,7 @@
 // script-version: 0.7
 //
 //manual mapping of buttons that can't be maped in their descriptions
-list gl_mapping = ["205", "L", "204", "S", "206", "R", "200", "A", "201", ">", "202", "<", "", "150", "ZP169", "151", "ZP179", "155", "ZP199", "156", "ZP189", "174", "G-5AAAAAAAAAAAAAH4AAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAA/A/AAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAAAwA///AAAAAAAAAAAAAAAAAAAA;-5AD//AAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAABz+AAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAA8A8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "152", "P209-219-229-239-249-259-269", "153", "P279-289-299"];
+list gl_mapping = ["205", "L", "204", "S", "206", "R", "200", "A", "201", ">", "202", "<", "", "150", "ZP169", "151", "ZP179", "155", "ZP199", "156", "ZP189", "174", "G-5AAAAAAAAAAAAAH4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAA/A/AAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAAAwA///AAAAAAAAAAAAAAAAAAAAAAAAAA;-5AD//AAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAABz+AAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAA8A8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "152", "ZP209-219-229-239-249-259-269", "153", "ZP279-289-299"];
 //color of the slots counter
 vector gv_counterSaveColor = <0.8, 0.0, 0.0>;
 vector gv_counterUnsavedColor = <0.0,0.0,0.0>;
@@ -84,16 +84,20 @@ readBase64AlphaString(string s_base64Alpha)
     integer i_prim;
     integer i_bitPos;
     integer i_alpha;
-    vector v_color;
+    integer i_split;
     integer i_primCount = llGetNumberOfPrims();
-    for( a = 0; a <= i_primCount; ++a)
+    vector v_color;
+    string s_desc;
+    string s_command;
+    //check descriptions of all prims and set alphas
+    for( a = 1; a <= i_primCount; ++a)
     {
-        string s_desc = llList2String(llGetLinkPrimitiveParams(a, [ PRIM_DESC ]), 0);
-        string s_command = llGetSubString(s_desc, 0, 1);
+        s_desc = llList2String(llGetLinkPrimitiveParams(a, [ PRIM_DESC ]), 0);
+        s_command = llGetSubString(s_desc, 0, 1);
         if (s_command == "ZP")
         {
             //if multiple faces, just care about first
-            integer i_split = llSubStringIndex(s_desc, "-");
+            i_split = llSubStringIndex(s_desc, "-");
             if (i_split != -1)
             {
                 s_desc = llGetSubString(s_desc, 0, i_split - 1);
@@ -134,6 +138,42 @@ readBase64AlphaString(string s_base64Alpha)
                 {
                     llSetLinkPrimitiveParamsFast(a, [PRIM_COLOR, i_face, v_color, 1]);
                 }
+            }
+        }
+    }
+    //same again for mappings
+    integer i_hudPrim;
+    integer i_hudFace;
+    a = llGetListLength(gl_mapping);
+    while (a--)
+    {
+        s_desc = llList2String(gl_mapping, a * 2 + 1);
+        if (llSubStringIndex(s_desc, "ZP") == 0)
+        {
+            i_hudPrim = llList2Integer(gl_mapping, a * 2);
+            i_hudFace = (integer)i_hudPrim % (integer)10;
+            i_hudPrim = (integer)i_hudPrim / (integer)10;
+            i_split = llSubStringIndex(s_desc, "-");
+            if (i_split != -1)
+            {
+                s_desc = llGetSubString(s_desc, 0, i_split - 1);
+            }
+            i_face = (integer)llGetSubString(s_desc, -1, -1);
+            if (i_face == 9)
+            {
+                i_face = 0;
+            }
+            i_prim = (integer)llGetSubString(s_desc, 2, -2);
+            i_bitPos = (i_prim - 1) * 8 + i_face;
+            i_alpha = (llList2Integer(l_intAlphaConf, llFloor(i_bitPos / 32)) >> (31 - (i_bitPos % 32))) & 0x0000001;
+            v_color = llList2Vector(llGetLinkPrimitiveParams(a, [PRIM_COLOR, i_hudFace]),0);
+            if (i_alpha)
+            {
+                llSetLinkPrimitiveParamsFast(a, [PRIM_COLOR, i_hudFace, v_color, 0]);
+            }
+            else
+            {
+                llSetLinkPrimitiveParamsFast(a, [PRIM_COLOR, i_hudFace, v_color, 1]);
             }
         }
     }

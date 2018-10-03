@@ -1,43 +1,20 @@
 //### body-single-layer.lsl
 // script-version: 0.6
+// === If you don't know what to do here, don't worry, there is some documentation ===
+// (ask around, someone will be able to give it to you)
 //indentification string of the mesh body
 string gs_ident = "adonis";
 //if Ankle Lock is on or off
 integer gb_ankleLock = FALSE;
-//linked faces that get ignored
-//last digit: face number - previous digits: link number
-//if last digit is 9, it is considered as ALL_SIDES of prim
-//(faces from gl_feet, gl_neck and gl_nailsShape are already ignored, no need to set them here again)
-list gl_ignorePrims = ["19", "161", "171"];
-//texture setting strings and the AlphaStrings of the faces they will setup
-//(gl_ignorePrims is NOT ignoured here), use helper script to generate a string
-list gl_textureSets = ["upper", "", "lower", ""];
-//setup upper body texture
-//base64 config string with 1 being relevant face
-string gs_UpperParts = "AP///w///AwA/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAABABAAAAA";
-//setup for lower body texture
-//base64 config string with 1 being relevant faces
-//(the feet, without nails, will be automatically included, they don't
-// have to be part of the string)
-string gs_LowerParts = "AAAAAAAAAAAAAAAAAA/P///w/////w/////w/////w///4eAeP//AA";
-//setup for nails texture
-//last digit: face number - previous digits: link number
-//if last digit is 9, it is considered as ALL_SIDES of prim
-//(leave gl_neckParts empty and it will be auto generated from gl_neck)
-//(leave gl_handNails empty and it will be auto generated from gl_nailsShape)
-string gs_feetIdent = "athena-feetnails";
-list gl_feetNails = ["340", "350", "361"];
-string gs_handIdent = "athena-handnails";
-list gl_handNails = [];
-list gl_neckParts = [];
-//setup for changing parts
-//last digit: face number - previous digits: link number
-//if last digit is 9, it is considered as ALL_SIDES of prim
-//every entry in the list can itself be a comma-seperated list
-//entry can also be ""
-list gl_feet = ["", "349", "359", "369"];
-list gl_neck = ["", "314", "313", "312", "311", "310"];
-list gl_nailsShape = ["321,331", "322,332", "320,330", "324,334", "323,333", ""];
+//linked faces that get ignored on setting alphas
+//A base64 bitmask, the bits for faces to ignore are 0, all other are 1
+//generate it with helper script
+string gs_alphaFilterMask = "AP///w/////w/////w////vwv////w/////w/////w/////w";
+//texture setting strings and the Base64Strings of the faces they will setup
+//(gs_alphaFilterMask is NOT ignoured here), use helper script to generate those strings
+list gl_textureSets = ["lower", "AAAAAAAAAAAAAP7+/w////oAoAAAAAAAAAAAAAAAAAAAAAAA", "upper", "AP///w//z+/A/AAAAAAAAAAAAAAA/wAAAAAAAP///wAAAAAA", "neck", "AAAAAAAAAAAAAAAAAAAAAAAAAP//AAAAAAAAAAAAAAAAAAAA", "adonis-handnails", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////w/wAAAA/wAAAA", "adonis-feetnails", "AAAAAAAAAAAAAAAAAAAAAAHwHwAAAAAAAAAAAAAAAAAAAAAA", "adonis-socks", "AAAAAAAAAAAAAAAAAAAAAAQAQAAAAAAAAAAAAAAAAAAAAAAA"];
+//sets to toggle exclusively
+list gl_toggleSets = [];
 //main communication Channel
 integer gi_BodyChannel = -50;
 integer gi_HUDChannel = -51;
@@ -46,8 +23,6 @@ integer gi_SkinHUDChannel = -61;
 //size of trusted Item list
 integer gi_trustedItemsSize = 15;
 // === Do not edit something below here, if you are not a scripter ===
-string gs_alphaFilterMask;
-string gs_textureFilterMask;
 list gl_trustedItems;
 integer gi_trustedItemPointer;
 
@@ -83,80 +58,6 @@ integer gi_trustedItemPointer;
 // Messages on Channel -60 and -61 always start with the skin part, like "upper",
 // followed by ":" and the texture uuid.
 
-list splitList(list l_multiPrimList)
-{
-    list l_result = [];
-    integer i_length = llGetListLength(l_multiPrimList);
-    integer a = 0;
-    while (a < i_length)
-    {
-        l_result += llParseString2List(llList2String(l_multiPrimList, a), [","], []);
-        ++a;
-    }
-    return l_result;
-}
-
-string list2Base64(list l_primList)
-{
-    //create a list of 0s with the needed length
-    integer i_intCount = llCeil(llGetNumberOfPrims() / 4);
-    integer a = 0;
-    list l_intList = [];
-    while (a < i_intCount)
-    {
-        l_intList += (list)0;
-        ++a;
-    }
-    //write bits
-    integer i_primListLength = llGetListLength(l_primList);
-    string s_tmpString;
-    integer i_prim;
-    integer i_face;
-    integer i_posInt;
-    integer i_pos;
-    integer i_tmp;
-    list l_allFaces;
-    integer b;
-    a = 0;
-    while (a < i_primListLength)
-    {
-        s_tmpString = llList2String(l_primList, a);
-        if (s_tmpString != "")
-        {
-            i_prim = (integer)llGetSubString(s_tmpString, 0, -2);
-            i_face = (integer)llGetSubString(s_tmpString, -1, -1);
-            //if ALL_SIDES of prim
-            if (i_face == 9)
-            {
-                l_allFaces = [];
-                b = 0;
-                while (b < 8)
-                {
-                    l_allFaces += (list)((string)i_prim + (string)b);
-                    b++;
-                }
-                l_primList = llListReplaceList(l_primList, l_allFaces, a, a);
-                i_primListLength += 7;
-                i_face = 0;
-            }
-            i_posInt = llFloor(( --i_prim * 8 + i_face ) / 32);
-            i_pos = (i_prim * 8 + i_face) % 32;
-            i_tmp = llList2Integer(l_intList, i_posInt);
-            i_tmp = i_tmp | (0x00000001 << (31 - i_pos));
-            l_intList = llListReplaceList(l_intList, (list)i_tmp, i_posInt, i_posInt);
-        }
-        ++a;
-    }
-    //create base64 string
-    string s_result = "";
-    a = 0;
-    while (a < i_intCount)
-    {
-        s_result += llGetSubString(llIntegerToBase64(llList2Integer(l_intList, a)), 0, 5);
-        ++a;
-    }
-    return s_result;
-}
 
 string base64And(string base641, string base642)
 {
@@ -170,23 +71,6 @@ string base64And(string base641, string base642)
         i_tmp1 = llBase64ToInteger(llGetSubString(base641, a * 6, a * 6 + 5));
         i_tmp2 = llBase64ToInteger(llGetSubString(base642, a * 6, a * 6 + 5));
         s_result += llGetSubString(llIntegerToBase64(i_tmp1 & i_tmp2), 0, 5);
-        a++;
-    }
-    return s_result;
-}
-
-string base64Or(string base641, string base642)
-{
-    integer i_intCount = llStringLength(base641) / 6;
-    string s_result = "";
-    integer a = 0;
-    integer i_tmp1;
-    integer i_tmp2;
-    while (a < i_intCount)
-    {
-        i_tmp1 = llBase64ToInteger(llGetSubString(base641, a * 6, a * 6 + 5));
-        i_tmp2 = llBase64ToInteger(llGetSubString(base642, a * 6, a * 6 + 5));
-        s_result += llGetSubString(llIntegerToBase64(i_tmp1 | i_tmp2), 0, 5);
         a++;
     }
     return s_result;
@@ -231,9 +115,17 @@ integer base64FirstOne(string base64)
     return -1;
 }
 
+integer getBitFromBase64(string base64, integer prim, integer face)
+{
+    integer i_bitPos = (prim - 1) * 8 + face;
+    integer i_intpos = i_bitPos / 32;
+    integer i_base = llBase64ToInteger(llGetSubString(base64, i_intpos * 6, i_intpos * 6 + 5));
+    integer i_bit = (i_base >> (31 - (i_bitPos % 32))) & 0x0000001;
+    return i_bit;
+}
+
 toggleAlpha(integer num,integer face)
 {
-    llOwnerSay("DEBUG: set face " + (string)num + "/" + (string)face);
     if (face == 9)
     {
         integer i_cnt = 8;
@@ -242,7 +134,7 @@ toggleAlpha(integer num,integer face)
             toggleAlpha(num, i_cnt);
         }
     }
-    if (llListFindList(gl_ignorePrims, [(string)num + (string)face]) != -1 || llListFindList(gl_ignorePrims, [(string)num + "9"]) != -1)
+    if (!getBitFromBase64(gs_alphaFilterMask, num, face))
     {
         return;
     }
@@ -277,8 +169,7 @@ string getBase64AlphaString()
             --i_bitCount;
             if (llList2Float(llGetLinkPrimitiveParams(a, [PRIM_COLOR, b]), 1) != 1.0)
             {
-                i_mask = 0x00000001;
-                i_mask = i_mask << i_bitCount;
+                i_mask = 0x00000001 << i_bitCount;
                 i_tempAlphaConf = i_tempAlphaConf | i_mask;
             }
             if (i_bitCount == 0)
@@ -291,7 +182,7 @@ string getBase64AlphaString()
             ++b;
         }
     }
-    if (i_mask != 0)
+    if (i_bitCount != 32)
     {
         s_base64alpha += llGetSubString(llIntegerToBase64(i_tempAlphaConf), 0, 5);
     }
@@ -409,30 +300,6 @@ setTextureBase64(string s_base64alpha, string s_texture)
     }
 }
 
-setTextureList(list l_faceList, string s_texture)
-{
-    integer i_length = llGetListLength(l_faceList);
-    integer a = 0;
-    integer i_prim;
-    integer i_face;
-    integer i_faces;
-    while (a < i_length)
-    {
-        i_faces = llList2Integer(l_faceList, a);
-        i_face = i_faces % 10;
-        if (i_face == 9)
-        {
-            i_face = ALL_SIDES;
-        }
-        i_prim = llFloor(i_faces / 10);
-        if (i_prim != 0)
-        {
-            llSetLinkPrimitiveParamsFast(i_prim, [PRIM_TEXTURE, i_face, s_texture, <1,1,0>, <0,0,0>, 0]);
-        }
-        ++a;
-    }
-}
-
 selectPart(list l_partList, integer num)
 {
     if (l_partList == [])
@@ -491,20 +358,12 @@ default
             ++a;
         }
         gi_trustedItemPointer = 0;
-        //check neck lists
-        if (gl_neckParts == [] && gl_neck != [])
-        {
-            gl_neckParts = splitList(gl_neck);
-        }
-        //check nails lists
-        if (gl_handNails == [] && gl_nailsShape != [])
-        {
-            gl_handNails = splitList(gl_nailsShape);
-        }
-        //gs_alphaFilterMask = base64Invert(list2Base64(splitList(gl_feet + gl_neck + gl_nailsShape) + gl_ignorePrims + gl_feetNails + gl_handNails));
-        gs_alphaFilterMask = base64Invert(list2Base64(gl_ignorePrims + splitList(gl_feet) + gl_neckParts + gl_handNails));
-        gs_textureFilterMask = base64Invert(list2Base64(gl_handNails + gl_feetNails + gl_ignorePrims + gl_neckParts));
     } 
+
+    on_rez(integer num)
+    {
+        getBase64AlphaString();
+    }
 
     listen(integer channe, string name, key id, string message)
     {
@@ -539,73 +398,25 @@ default
                 integer i_link;
                 integer i_face;
                 string s_texture;
-                if (gs_UpperParts != "")
+                string s_set;
+                integer i_length = llGetListLength(gl_textureSets) / 2;
+                while (i_length--)
                 {
-                    i_firstBit = base64FirstOne(base64And(gs_UpperParts, gs_textureFilterMask));
+                    s_set = llList2String(gl_textureSets, i_length * 2);
+                    i_firstBit = base64FirstOne(llList2String(gl_textureSets, i_length * 2 + 1));
                     i_link = llFloor(i_firstBit / 8) + 1;
                     i_face = i_firstBit % 8; 
                     s_texture = llList2String(llGetLinkPrimitiveParams(i_link, [PRIM_TEXTURE, i_face]), 0);
-                    llRegionSayTo(ownerOfThisObject, gi_SkinHUDChannel, "upper:" + s_texture);
+                    llRegionSayTo(ownerOfThisObject, gi_SkinHUDChannel, s_set + ":" + s_texture);
                 }
-                if (gs_LowerParts != "")
+            }
+            else
+            {
+                integer i_found = llListFindList(gl_textureSets, [s_cmd]) + 1;
+                if (i_found)
                 {
-                    i_firstBit = base64FirstOne(base64And(gs_LowerParts, gs_textureFilterMask));
-                    i_link = llFloor(i_firstBit / 8) + 1;
-                    i_face = i_firstBit % 8; 
-                    s_texture = llList2String(llGetLinkPrimitiveParams(i_link, [PRIM_TEXTURE, i_face]), 0);
-                    llRegionSayTo(ownerOfThisObject, gi_SkinHUDChannel, "lower:" + s_texture);
+                    setTextureBase64(llList2String(gl_textureSets, i_found), s_uuid);
                 }
-                if (gl_neckParts != [])
-                {
-                    i_firstBit = llList2Integer(gl_neckParts, 0);
-                    i_link = llFloor(i_firstBit / 10);
-                    i_face = i_firstBit % 10;
-                    s_texture = llList2String(llGetLinkPrimitiveParams(i_link, [PRIM_TEXTURE, i_face]), 0);
-                    llRegionSayTo(ownerOfThisObject, gi_SkinHUDChannel, "neck:" + s_texture);
-                }
-                if (gl_handNails != [])
-                {
-                    i_firstBit = llList2Integer(gl_handNails, 0);
-                    i_link = llFloor(i_firstBit / 10);
-                    i_face = i_firstBit % 10;
-                    s_texture = llList2String(llGetLinkPrimitiveParams(i_link, [PRIM_TEXTURE, i_face]), 0);
-                    llRegionSayTo(ownerOfThisObject, gi_SkinHUDChannel, gs_feetIdent + ":" + s_texture);
-                }
-                if (gl_feetNails != [])
-                {
-                    i_firstBit = llList2Integer(gl_feetNails, 0);
-                    i_link = llFloor(i_firstBit / 10);
-                    i_face = i_firstBit % 10;
-                    s_texture = llList2String(llGetLinkPrimitiveParams(i_link, [PRIM_TEXTURE, i_face]), 0);
-                    llRegionSayTo(ownerOfThisObject, gi_SkinHUDChannel, gs_handIdent + ":" + s_texture);
-                }
-            }
-            if (s_cmd == "upper")
-            {
-                if (gs_UpperParts == "") return;
-                setTextureBase64(base64And(gs_UpperParts, gs_textureFilterMask), s_uuid);
-            }
-            else if (s_cmd == "lower")
-            {
-                if (gs_LowerParts == "") return;
-                //set feet but not nails,
-                string s_base64Lower = base64Or(list2Base64(splitList(gl_feet)), gs_LowerParts);
-                setTextureBase64(base64And(s_base64Lower, gs_textureFilterMask), s_uuid);
-            }
-            else if (s_cmd == "neck")
-            {
-                if (gl_neckParts == []) return;
-                setTextureList(gl_neckParts, s_uuid);
-            }
-            else if (s_cmd == gs_handIdent)
-            {
-                if (gl_handNails == []) return;
-                setTextureList(gl_handNails, s_uuid);
-            }
-            else if (s_cmd == gs_feetIdent)
-            {
-                if (gl_feetNails == []) return;
-                setTextureList(gl_feetNails, s_uuid);
             }
             return;
         }
@@ -633,10 +444,8 @@ default
                 gi_trustedItemPointer = 0;
             }
         }
-        llOwnerSay("DEBUG: got message " + message);
 
         string command = llGetSubString(message,0,0);
-
         if (command == "-")
         {
             integer i_mode = (integer)llGetSubString(message, 1, 1);
@@ -645,7 +454,7 @@ default
             getBase64AlphaString();
             return;
         }
-        if (command == "P")
+        else if (command == "P")
         {
             list l_faces = llParseString2List(llGetSubString(message, 1, -1), ["-"], []);
             integer i_length = llGetListLength(l_faces);
@@ -667,37 +476,28 @@ default
             llRegionSayTo(ownerOfThisObject, 0, "Current Alpha String:\n" + s_config);
             return;
         }
-        if (message == "updatealpha")
+        else if (message == "updatealpha")
         {
             getBase64AlphaString();
             return;
         }
-
-        if (message == "Reset")
+        else if (message == "Reset")
         {
             llOwnerSay("DEBUG Reset received.");
-            gs_alphaFilterMask = base64Invert(list2Base64(splitList(gl_feet + gl_neck + gl_nailsShape) + gl_ignorePrims + gl_feetNails + gl_handNails));
             readBase64AlphaString(gs_alphaFilterMask, 2);
             getBase64AlphaString();
             llOwnerSay("DEBUG Finished Reset");
             return;
         } 
-
-        if (llSubStringIndex(message, "nails") == 0)
+        else
         {
-            selectPart(gl_nailsShape, (integer)llGetSubString(message, 5, 5));
-            return;
-        }
-        if (llSubStringIndex(message, "neck") == 0)
-        {
-            llOwnerSay("DEBUG Neck " + message + " selected");
-            selectPart(gl_neck, (integer)llGetSubString(message, 4, 4));
-            return;
-        }
-        if (llSubStringIndex(message, "feet") == 0)
-        {
-            selectPart(gl_feet, (integer)llGetSubString(message, 4, 4));
-            return;
+            //selectPart from gl_toggleSets
+            integer i_foundp = llListFindList(gl_toggleSets, [llGetSubString(message, 0, -2)]) + 1;
+            if (i_foundp)
+            {
+                list l_setparts = llParseString2List(llList2String(gl_toggleSets, i_foundp), [";"], []);
+                selectPart(l_setparts, (integer)llGetSubString(message, -1, -1));
+            }
         }
     }
 
