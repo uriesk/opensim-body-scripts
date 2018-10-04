@@ -1,13 +1,13 @@
 //### hud.lsl
-// script-version: 0.7
+// script-version: 0.8
 //
 //manual mapping of buttons that can't be maped in their descriptions
-list gl_mapping = ["205", "L", "204", "S", "206", "R", "200", "A", "201", ">", "202", "<", "150", "ZP169", "151", "ZP179", "155", "ZP199", "156", "ZP189", "174", "G-5AAAAAAAAAAAAAH4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAA/A/AAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAAAAAAAAAAAAwA///AAAAAAAAAAAAAAAAAAAAAAAAAA;-5AD//AAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAAAAABz+AAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|-5AAAA8A8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "152", "ZP200-210-220-230-240-250-269", "153", "ZP279-289-299"];
+list gl_mapping = ["65", "L", "64", "S", "66", "R", "60", "A", "61", ">", "62", "<"];
 //color of the slots counter
 vector gv_counterSaveColor = <0.8, 0.0, 0.0>;
 vector gv_counterUnsavedColor = <0.0,0.0,0.0>;
 //link number and face of counter (gets overwritten if there is a link with description "C")
-integer gi_counterLinkNumber = 20;
+integer gi_counterLinkNumber = 6;
 integer gi_counterFaceNumber = 3;
 //communication channels to body
 integer gi_BodyChannel = -50;

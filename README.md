@@ -56,8 +56,8 @@ Following features are supported:
    (example: ["13", "R"] for link 1 face 3 being the reset button)
 
 ## Setup mesh body to HUD
-1. Put the *body-single-layer.lsl* script into the mesh body
-2. change the gs\_ident string in body-single-layer.lsl to the same string that you set above on 3 as description for the HUD
+1. Put the body-main.lsl* script into the mesh body
+2. change the gs\_ident string in body-main.lsl to the same string that you set above on 3 as description for the HUD
 3. Generate a gs\_alphaFilterMask string with the tools/alphastring.lsl script (instructions are there)
    The gs\_alphaFilterMask tells the script which links/faces to ignore when toggling alphas.
 4. Now you can test the HUD, individual alphas should already be able to get set just fine and the reset button should work

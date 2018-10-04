@@ -30,11 +30,11 @@
 
 // 1. Set your values here:
 // If you don't need something, leave it empty
-list l_prims = ["251", "241", "231", "221", "211"]; 
-list l_alpha = ["AP///w/////w/////w////vwv///gAAAAAAAAP//gA/////w"];
+list l_prims = []; 
+list l_alpha = [];
 list l_prims_ignore = [];
 string s_alpha_mask = "";
-integer i_invert = FALSE;
+integer i_invert = TRUE;
 // 2. Save the script and put it inside the body, it will print the 
 //    resulting base64 string and delete itself again.
 
