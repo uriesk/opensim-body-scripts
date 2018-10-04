@@ -4,15 +4,15 @@
 // (ask around, someone will be able to give it to you)
 //indentification string of the mesh body
 string gs_ident = "adam";
-//if Ankle Lock is on or off
-integer gb_ankleLock = FALSE;
 //linked faces that get ignored on setting alphas
 //A base64 bitmask, the bits for faces to ignore are 0, all other are 1
 //generate it with helper script
 string gs_alphaFilterMask = "/////w/////w/////w/////w/////w/////w";
 //texture setting strings and the Base64Strings of the faces they will setup
 //(gs_alphaFilterMask is NOT ignoured here), use helper script to generate those strings
-list gl_textureSets = ["lower", "AAAAAA+P///w/////wAAAAAAAAAAAAAAAAAA", "upper", "YPz//wAAAAAAAAAAAA/Pz8/w/////w////AA", "neck", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/w", "adam-handnails", "kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "adam-feetnails", "AAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"];
+list gl_textureSets = ["tattoo-lower", "AAAAAA+P///w/////wAAAAAAAAAAAAAAAAAA", "tattoo-upper", "//z//wAAAAAAAAAAAA/Pz8/w/////w////AA"];
+//remapping of faces from the main body to different faces in the layer
+list gl_faceMapping = [12, "11", 11, "10"];
 //sets to toggle exclusively
 list gl_toggleSets = [];
 //main communication Channel
@@ -21,7 +21,7 @@ integer gi_HUDChannel = -51;
 integer gi_SkinChannel = -60;
 integer gi_SkinHUDChannel = -61;
 //size of trusted Item list
-integer gi_trustedItemsSize = 15;
+integer gi_trustedItemsSize = 5;
 // === Do not edit something below here, if you are not a scripter ===
 list gl_trustedItems;
 integer gi_trustedItemPointer;
@@ -117,6 +117,10 @@ integer base64FirstOne(string base64)
 
 integer getBitFromBase64(string base64, integer prim, integer face)
 {
+    if (prim <= 0)
+    {
+        return 0;
+    }
     integer i_bitPos = (prim - 1) * 8 + face;
     integer i_intpos = i_bitPos / 32;
     integer i_base = llBase64ToInteger(llGetSubString(base64, i_intpos * 6, i_intpos * 6 + 5));
@@ -124,8 +128,44 @@ integer getBitFromBase64(string base64, integer prim, integer face)
     return i_bit;
 }
 
+string setBitInBase64(string base64, integer prim, integer face, integer value)
+{
+    integer i_bitPos = (prim - 1) * 8 + face;
+    integer i_intpos = i_bitPos / 32;
+    integer i_base = llBase64ToInteger(llGetSubString(base64, i_intpos * 6, i_intpos * 6 + 5));
+    integer i_bitpos = 0x0000001 << (31 - (i_bitPos % 32));
+    i_base = i_base & (~i_bitpos);
+    if (value)
+    {
+        i_base = i_base | i_bitpos;
+    }
+    base64 = llDeleteSubString(base64, i_intpos * 6, i_intpos * 6 + 5);
+    base64 = llInsertString(base64, i_intpos * 6, llGetSubString(llIntegerToBase64(i_base), 0, 5));
+    return base64;
+}
+
 toggleAlpha(integer num,integer face)
 {
+    //mapping
+    integer i_search = num * 10 + face;
+    integer i_foundMap = llListFindList(gl_faceMapping, [i_search]) + 1;
+    if (i_foundMap)
+    {
+        llOwnerSay("DEBUG: found " + (string)num + "/" + (string)face);
+        integer i_rep = llList2Integer(gl_faceMapping, i_foundMap);
+        if (i_rep <= 0)
+        {
+            return;
+        }
+        num = i_rep / 10;
+        face = i_rep % 10;
+        llOwnerSay("DEBUG: set to " + (string)num + "/" + (string)face);
+    }
+    else if (llListFindList(gl_faceMapping, [(string)i_search]) != -1)
+    {
+        return;
+    }
+    //
     if (face == 9)
     {
         integer i_cnt = 8;
@@ -151,57 +191,13 @@ toggleAlpha(integer num,integer face)
     }
 }
 
-string getBase64AlphaString()
-{
-    string s_base64alpha = "";
-    integer i_prims = llGetNumberOfPrims();
-    integer a = 0;
-    integer i_bitCount = 32;
-    integer i_tempAlphaConf = 0; 
-    integer b;
-    integer i_mask;
-    while (a < i_prims)
-    {
-        a++;
-        b = 0;
-        while (b < 8)
-        {
-            --i_bitCount;
-            if (llList2Float(llGetLinkPrimitiveParams(a, [PRIM_COLOR, b]), 1) != 1.0)
-            {
-                i_mask = 0x00000001 << i_bitCount;
-                i_tempAlphaConf = i_tempAlphaConf | i_mask;
-            }
-            if (i_bitCount == 0)
-            {
-                s_base64alpha += llGetSubString(llIntegerToBase64(i_tempAlphaConf), 0, 5);
-                i_bitCount = 32;
-                i_tempAlphaConf = 0;
-                i_mask = 0;
-            }
-            ++b;
-        }
-    }
-    if (i_bitCount != 32)
-    {
-        s_base64alpha += llGetSubString(llIntegerToBase64(i_tempAlphaConf), 0, 5);
-    }
-    s_base64alpha = base64And(s_base64alpha, gs_alphaFilterMask);
-    llOwnerSay("DEBUG send base64alpha update to HUD");
-    llRegionSayTo(llGetOwner(), gi_HUDChannel, gs_ident + ":+" + s_base64alpha);
-    return s_base64alpha;
-}
-
-readBase64AlphaString(string s_base64alpha, integer mode)
+readBase64AlphaString(string s_base64alpha, integer mode, integer map)
 {
     //mode:
     // 1: Set bits are going to be set to transparency
     // 2: Set bits are going to be set to full oppacy
-    // 3: Set bits will be toggled
     // 4: Set bits are going to be set to full oppacy
     //    Unset bits are going to be set to transparency
-    // 5: Set bits will be toggled, but either all transparent
-    //    or all to full oppacy
     integer i_partLength = llStringLength(s_base64alpha) / 6;
     integer a = 0;
     integer i_tempAlphaConf;
@@ -210,12 +206,30 @@ readBase64AlphaString(string s_base64alpha, integer mode)
     integer i_prim;
     integer i_face;
     integer i_alpha;
-    llOwnerSay("DEBUG setting Alphas!");
+    //fix mapping
+    if (map)
+    {
+        llOwnerSay("DEBUG: Before mapping: " + s_base64alpha);
+        integer i_mapLen = llGetListLength(gl_faceMapping) / 2;
+        while (i_mapLen--)
+        {
+            integer i_tmp = llList2Integer(gl_faceMapping, i_mapLen * 2);
+            integer i_sprim = i_tmp / 10;
+            integer i_sface = i_tmp % 10;
+            i_tmp = llList2Integer(gl_faceMapping, i_mapLen * 2 + 1);
+            integer i_tprim = i_tmp / 10;
+            integer i_tface = i_tmp % 10;
+            i_tmp = getBitFromBase64(s_base64alpha, i_sprim, i_sface);
+            s_base64alpha = setBitInBase64(s_base64alpha, i_tprim, i_tface, i_tmp);
+        }
+        llOwnerSay("DEBUG: After mapping: " + s_base64alpha);
+    }
+    //
     if (mode == 4)
     {
-        readBase64AlphaString(s_base64alpha, 1);
+        readBase64AlphaString(s_base64alpha, 1, FALSE);
         s_base64alpha = base64Invert(s_base64alpha);
-        readBase64AlphaString(s_base64alpha, 2);
+        readBase64AlphaString(s_base64alpha, 2, FALSE);
         return;
     }
     s_base64alpha = base64And(gs_alphaFilterMask, s_base64alpha);
@@ -231,18 +245,6 @@ readBase64AlphaString(string s_base64alpha, integer mode)
             i_alpha = (i_tempAlphaConf >> i_bitCount) & 0x00000001;
             if (i_alpha)
             {
-                if (mode == 5)
-                {
-                    if (llList2Float(llGetLinkPrimitiveParams(i_prim, [PRIM_COLOR, i_face]), 1) == 1.0)
-                    {
-                        mode = 1;
-                    }
-                    else
-                    {
-                        mode = 2;
-                    }
-                }
-
                 if (mode == 1)
                 {
                     llSetLinkPrimitiveParamsFast(i_prim, [PRIM_COLOR, i_face, <1.0, 1.0, 1.0>, 0.0]);
@@ -251,23 +253,11 @@ readBase64AlphaString(string s_base64alpha, integer mode)
                 {
                     llSetLinkPrimitiveParamsFast(i_prim, [PRIM_COLOR, i_face, <1.0, 1.0, 1.0>, 1.0]);
                 }
-                else if (mode == 3)
-                {
-                    if (llList2Float(llGetLinkPrimitiveParams(i_prim, [PRIM_COLOR, i_face]), 1) == 1.0)
-                    {
-                        llSetLinkPrimitiveParamsFast(i_prim, [PRIM_COLOR, i_face, <1.0, 1.0, 1.0>, 0.0]);
-                    }
-                    else
-                    {
-                        llSetLinkPrimitiveParamsFast(i_prim, [PRIM_COLOR, i_face, <1.0, 1.0, 1.0>, 1.0]);
-                    }
-                }
             }
             ++i_totalBitCount;
         }
         a++;
     }
-    llOwnerSay("DEBUG Alphas set!");
 }
 
 setTextureBase64(string s_base64alpha, string s_texture)
@@ -347,8 +337,9 @@ default
 {
     state_entry()
     {
-        llListen(gi_BodyChannel,"","","");
-        llListen(gi_SkinChannel,"","","");
+        llListen(gi_BodyChannel, "", "", "");
+        llListen(gi_HUDChannel, "", "", "");
+        llListen(gi_SkinChannel, "", "", "");
         //populate trusted tems list
         gl_trustedItems = [];
         integer a = 0;
@@ -362,7 +353,7 @@ default
 
     on_rez(integer num)
     {
-        getBase64AlphaString();
+        llRegionSayTo(llGetOwner(), gi_BodyChannel, gs_ident + ":updatealpha");
     }
 
     listen(integer channe, string name, key id, string message)
@@ -381,7 +372,6 @@ default
             {
                 return;
             }
-            llOwnerSay("DEBUG Item is allowed becaues it is in trusted list");
         }
         
         //Texture Channel
@@ -421,8 +411,8 @@ default
             return;
         }
 
-        //Body Channel
-        if (channe != gi_BodyChannel || llSubStringIndex(message, gs_ident + ":") != 0)
+        //Just correct ident since here
+        if (llSubStringIndex(message, gs_ident + ":") != 0)
         {
             return;
         }
@@ -430,14 +420,28 @@ default
         {
             message = llGetSubString(message, llStringLength(gs_ident) + 1, -1);
         }
+
+        //HUD Channel
+        if (channe == gi_HUDChannel)
+        {
+            if (llSubStringIndex(message, "+") == 0)
+            {
+                readBase64AlphaString(llGetSubString(message, 1, -1), 4, TRUE);
+            }
+            return;
+        }
+
+        //Body Channel
+        if (channe != gi_BodyChannel)
+        {
+            return;
+        }
         //add item to trusted list
         //(so that item can send commands on detach events too,
         //when it is not possible to check it's owner)
         if (llListFindList(gl_trustedItems, [id]) == -1)
         {
-            llOwnerSay("DEBUG Add item " + (string)id + " to trusted list");
             gl_trustedItems = llListReplaceList(gl_trustedItems, [id], gi_trustedItemPointer, gi_trustedItemPointer);
-            llOwnerSay("DEBUG Trusted items: " + llDumpList2String(gl_trustedItems, ","));
             ++gi_trustedItemPointer;
             if (gi_trustedItemPointer == gi_trustedItemsSize)
             {
@@ -445,16 +449,7 @@ default
             }
         }
 
-        string command = llGetSubString(message,0,0);
-        if (command == "-")
-        {
-            integer i_mode = (integer)llGetSubString(message, 1, 1);
-            string s_base64Alpha = llGetSubString(message, 2, -1);
-            readBase64AlphaString(s_base64Alpha, i_mode);
-            getBase64AlphaString();
-            return;
-        }
-        else if (command == "P")
+        if (llSubStringIndex(message, "P") == 0)
         {
             list l_faces = llParseString2List(llGetSubString(message, 1, -1), ["-"], []);
             integer i_length = llGetListLength(l_faces);
@@ -469,26 +464,6 @@ default
             }
             return;
         }
-
-        if (message == "getalpha")
-        {
-            string s_config = getBase64AlphaString();
-            llRegionSayTo(ownerOfThisObject, 0, "Current Alpha String:\n" + s_config);
-            return;
-        }
-        else if (message == "updatealpha")
-        {
-            getBase64AlphaString();
-            return;
-        }
-        else if (message == "Reset")
-        {
-            llOwnerSay("DEBUG Reset received.");
-            readBase64AlphaString(gs_alphaFilterMask, 2);
-            getBase64AlphaString();
-            llOwnerSay("DEBUG Finished Reset");
-            return;
-        } 
         else
         {
             //selectPart from gl_toggleSets
@@ -499,32 +474,6 @@ default
                 selectPart(l_setparts, (integer)llGetSubString(message, -1, -1));
             }
         }
-    }
-
-    //ankle fix
-    attach(key attached) 
-    {
-        if (attached != NULL_KEY && gb_ankleLock) 
-        {
-            llRequestPermissions(attached, PERMISSION_TRIGGER_ANIMATION);
-        } 
-        else 
-        {
-            llSetTimerEvent(0);
-        }
-    }
-    run_time_permissions(integer perms) 
-    {
-        if(perms & PERMISSION_TRIGGER_ANIMATION) 
-        {
-            llStartAnimation("AnkleLock");
-            llSetTimerEvent(1);
-        }
-    }
-    timer() 
-    {
-        llStopAnimation("AnkleLock");
-        llStartAnimation("AnkleLock");
     }
 }
 

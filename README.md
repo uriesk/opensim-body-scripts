@@ -56,7 +56,7 @@ Following features are supported:
    (example: ["13", "R"] for link 1 face 3 being the reset button)
 
 ## Setup mesh body to HUD
-1. Put the body-main.lsl* script into the mesh body
+1. Put the body-main.lsl script into the mesh body
 2. change the gs\_ident string in body-main.lsl to the same string that you set above on 3 as description for the HUD
 3. Generate a gs\_alphaFilterMask string with the tools/alphastring.lsl script (instructions are there)
    The gs\_alphaFilterMask tells the script which links/faces to ignore when toggling alphas.
@@ -67,9 +67,9 @@ Following features are supported:
 6. If you need exclusive selections like having 3 different nail shapes and there should be always one active and it should be able to be changed with commands like "nail0", "nail1", etc. Define the alphas in gl\_toggleSets as 2D array like ["nail", "210,220;211,221;212,222"], which means that the command nail0 sets prim 21 face 0 and prim 22 face 0 to visible and 21/1, 22/1, 21/2 and 22/2 to invisible, and so on.
 
 ## Tattoo and clothing layers
-Mesh bodies that provide tattoo and clothing layers in SL are doing that by putting multiple full bodies on top of each other like onion layors. While this is a necessity in SL to be able to sell tattoos and applier clothes for mesh bodies without having to reveal the texture itself, this is of course also causing lag.
-In OpenSim, this is not neccessarily needed, because you can just take a tattoo layer, put it on your skin texture with photoshop, gimp, whatever, upload it yourself and set it as your skin. Also there is the talk about bake-on-mesh already for years, which would make those onion layers obsolete.
-The scripts might be adjusted in the future to provide also the possibility of layored mesh bodies (which would be rather easy).
+Multiple layers can be provided by wearing another body thats just slightly bigger on top of it like onion layers. The script for those layers is body-layers.lsl. It has to get SetUp exactly like the main script of the body by setting gs\_ident, gs\_alphaFilterMask and the texture list gl\_textureSets, just that the names for the textures are different like "tattoo-upper".
+The link order of the layers are supposed to be exactly like the main body, but a few differences can be remapped in the gl\_faceMapping list by entering the prim/face of the main body as integer and then the corespondending prim/face of the layer as string, like [10, "21"], which maps prim 1 face 0 of main body to prim 2 face 1 of the layer.
+
 
 ## Autohide
 It shouldn't be the responsibility of the user to set his alphas right, the clothes themself should tell what alphas they need.
