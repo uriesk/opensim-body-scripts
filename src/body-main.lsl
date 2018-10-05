@@ -133,6 +133,7 @@ toggleAlpha(integer num,integer face)
         {
             toggleAlpha(num, i_cnt);
         }
+        return;
     }
     if (!getBitFromBase64(gs_alphaFilterMask, num, face))
     {
