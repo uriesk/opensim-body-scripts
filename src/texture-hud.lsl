@@ -321,8 +321,15 @@ default
                 if (llGetInventoryType(s_part) == INVENTORY_TEXTURE)
                 {
                     k_tmp = llGetInventoryKey(s_part);
+                    llRegionSayTo(k_owner, 300301, (string)llGetInventoryKey(s_part));
                     llRegionSayTo(k_owner, gi_SkinChannel, gs_curCommandPrefix + "head:" + (string)k_tmp);
                     gl_curModelTextures = llListReplaceList(gl_curModelTextures, [k_tmp], gi_headFace, gi_headFace);
+                }
+                s_part = gs_curTexturePrefix + "-" + s_ident + "-neck";
+                if (llGetInventoryType(s_part) == INVENTORY_TEXTURE)
+                {
+                    k_tmp = llGetInventoryKey(s_part);
+                    llRegionSayTo(k_owner, gi_SkinChannel, gs_curCommandPrefix + "neck:" + (string)k_tmp);
                 }
             }
         }
