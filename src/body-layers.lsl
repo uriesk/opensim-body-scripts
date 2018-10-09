@@ -406,7 +406,12 @@ default
                 integer i_found = llListFindList(gl_textureSets, [s_cmd]) + 1;
                 if (i_found)
                 {
-                    setTextureBase64(llList2String(gl_textureSets, i_found), s_uuid);
+                    string s_base64 = llList2String(gl_textureSets, i_found);
+                    setTextureBase64(s_base64, s_uuid);
+                    if (llKey2Name((key)s_uuid) == "transparent")
+                    {
+                        readBase64AlphaString(s_base64, 1, FALSE);
+                    }
                 }
             }
             return;

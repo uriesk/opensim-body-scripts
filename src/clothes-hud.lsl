@@ -12,18 +12,24 @@ integer gi_curPage;
 //faces of model
 integer gi_modelLink = 18;
 integer gi_headFace = 1;
-integer gi_upperFace = 7;
-integer gi_lowerFace = 0;
-integer gi_tattooUpperFace = 6;
-integer gi_tattooLowerFace = 5;
+integer gi_upperFace = 2;
+integer gi_lowerFace = 3;
+integer gi_tattooUpperFace = 5;
+integer gi_tattooLowerFace = 6;
+integer gi_clothesUpperFace = 7;
+integer gi_clothesLowerFace = 0;
 integer gi_curSel;
 //channels
 integer gi_SkinChannel = -60;
 integer gi_SkinHUDChannel = -61;
+//transparent texture name
+string gs_transparentTextureName = "transparent";
 //Skin texture lists
 list gl_ident;
 //tmp
 integer gi_listenerSkinHUDChannel;
+key gk_curUpper;
+key gk_curLower;
 
 drawButtons()
 {
@@ -72,10 +78,25 @@ drawButtons()
         }
         else
         {
-            llSetLinkPrimitiveParamsFast(a + gi_buttonOffset,      [PRIM_COLOR, gi_frontFace, <1.0, 1.0, 1.0>, 0.0, PRIM_TEXT, "", ZERO_VECTOR, 0.0]);
+            llSetLinkPrimitiveParamsFast(a + gi_buttonOffset,      [PRIM_TEXTURE, gi_frontFace, TEXTURE_BLANK, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, gi_frontFace, <0.28, 0.28, 0.28>, 1.0, PRIM_TEXT, "", ZERO_VECTOR, 0.0]);
         }
         ++a;
     }
+}
+
+updateLayers()
+{
+    if (llGetInventoryType(gs_transparentTextureName) == INVENTORY_TEXTURE)
+    {
+        llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_clothesUpperFace, gs_transparentTextureName, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+        llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_clothesLowerFace, gs_transparentTextureName, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+        gk_curUpper = (key)gs_transparentTextureName;
+        gk_curLower = (key)gs_transparentTextureName;
+    }
+    llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, 4, "73c54d8e-18bc-4c2e-9861-b63092bc30ed", <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+    llRegionSayTo(llGetOwner(), gi_SkinChannel, "gettexture");
+    gi_listenerSkinHUDChannel = llListen(gi_SkinHUDChannel, "", "", "");
+    llSetTimerEvent(3.0);
 }
 
 default
@@ -83,7 +104,7 @@ default
     state_entry()
     {
         //rotate model
-        llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_OMEGA, <0.0, 0.0, 1.0>, PI / -4, 1.0]);
+        llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_OMEGA, <0.0, 0.0, 1.0>, PI / -4, 1.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0]);
         //check textures in inventory and populate lists
         integer i_itemCount = llGetInventoryNumber(INVENTORY_TEXTURE);
         integer a = 0;
@@ -111,13 +132,12 @@ default
         gi_itemCount = llGetListLength(gl_ident);
         //draw buttons
         drawButtons();
+        updateLayers();
     }
 
     on_rez(integer num)
     {
-        llRegionSayTo(llGetOwner(), gi_SkinChannel, "gettexture");
-        gi_listenerSkinHUDChannel = llListen(gi_SkinHUDChannel, "", "", "");
-        llSetTimerEvent(3.0);
+        updateLayers();
     }
 
     timer()
@@ -134,7 +154,7 @@ default
         }
         list l_msgList = llParseString2List(message, [":"], []);
         string s_part = llList2String(l_msgList, 0);
-        string s_texture = llList2String(l_msgList, 1);
+        key s_texture = llList2Key(l_msgList, 1);
         if (s_part == "lower")
         {
             llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_lowerFace, s_texture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
@@ -146,6 +166,24 @@ default
         else if (s_part == "head")
         {
             llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_headFace, s_texture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+        }
+        else if (s_part == "tattoo-upper")
+        {
+            llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_tattooUpperFace, s_texture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+        }
+        else if (s_part == "tattoo-lower")
+        {
+            llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_tattooLowerFace, s_texture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+        }
+        else if (s_part == "clothes-upper")
+        {
+            llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_clothesUpperFace, s_texture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+            gk_curUpper = s_texture;
+        }
+        else if (s_part == "clothes-lower")
+        {
+            llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_clothesLowerFace, s_texture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+            gk_curLower = s_texture;
         }
     }
 
@@ -182,20 +220,20 @@ default
             string s_part = s_ident + "-upper";
             if (llGetInventoryType(s_part) == INVENTORY_TEXTURE)
             {
-                llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_tattooUpperFace, s_part, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+                llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_clothesUpperFace, s_part, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
             }
-            else if (llGetInventoryType("transparent") == INVENTORY_TEXTURE)
+            else
             {
-                llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_tattooUpperFace, "transparent", <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+                llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_clothesUpperFace, gk_curUpper, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
             }
             s_part = s_ident + "-lower";
             if (llGetInventoryType(s_part) == INVENTORY_TEXTURE)
             {
-                llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_tattooLowerFace, s_part, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+                llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_clothesLowerFace, s_part, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
             }
-            else if (llGetInventoryType("transparent") == INVENTORY_TEXTURE)
+            else
             {
-                llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_tattooLowerFace, "transparent", <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+                llSetLinkPrimitiveParamsFast(gi_modelLink, [PRIM_TEXTURE, gi_clothesLowerFace, gk_curLower, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
             }
         }
         else if (link == gi_linkApply)
@@ -205,12 +243,14 @@ default
             string s_part = s_ident + "-upper";
             if (llGetInventoryType(s_part) == INVENTORY_TEXTURE)
             {
-                llRegionSayTo(k_owner, gi_SkinChannel, "tattoo-upper:" + (string)llGetInventoryKey(s_part));
+                gk_curUpper = llGetInventoryKey(s_part);
+                llRegionSayTo(k_owner, gi_SkinChannel, "clothes-upper:" + (string)gk_curUpper);
             }
             s_part = s_ident + "-lower";
             if (llGetInventoryType(s_part) == INVENTORY_TEXTURE)
             {
-                llRegionSayTo(k_owner, gi_SkinChannel, "tattoo-lower:" + (string)llGetInventoryKey(s_part));
+                gk_curLower = llGetInventoryKey(s_part);
+                llRegionSayTo(k_owner, gi_SkinChannel, "clothes-lower:" + (string)gk_curLower);
             }
         }
     }

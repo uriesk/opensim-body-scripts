@@ -2,7 +2,7 @@
 // script-version: 0.8
 //
 //manual mapping of buttons that can't be maped in their descriptions
-list gl_mapping = ["65", "L", "64", "S", "66", "R", "60", "A", "61", ">", "62", "<"];
+list gl_mapping = ["65", "L", "64", "S", "66", "R", "60", "A", "61", ">", "62", "<", "20", "ZP249"];
 //color of the slots counter
 vector gv_counterSaveColor = <0.8, 0.0, 0.0>;
 vector gv_counterUnsavedColor = <0.0,0.0,0.0>;

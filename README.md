@@ -70,10 +70,10 @@ Following features are supported:
 Multiple layers can be provided by wearing another body thats just slightly bigger on top of it like onion layers. The script for those layers is body-layers.lsl. It has to get SetUp exactly like the main script of the body by setting gs\_ident, gs\_alphaFilterMask and the texture list gl\_textureSets, just that the names for the textures are different like "tattoo-upper".
 The link order of the layers are supposed to be exactly like the main body, but a few differences can be remapped in the gl\_faceMapping list by entering the prim/face of the main body as integer and then the corespondending prim/face of the layer as string, like [10, "21"], which maps prim 1 face 0 of main body to prim 2 face 1 of the layer.
 
-
 ## Autohide
 It shouldn't be the responsibility of the user to set his alphas right, the clothes themself should tell what alphas they need.
 For this, check out the autohide.lsl script.
 
 ## Texture HUD
-The texture-hud.lsl script is for an HUD for selecting textures, it can store as many textures as you want. It has 12 buttons per page, a model that is showing the selected textures and arrow buttons to browse through the textures. 
+The texture-hud.lsl script is for an HUD for selecting textures, it can store as many textures as you want. It has 12 buttons per page, a model that is showing the selected textures and arrow buttons to browse through the textures. It has three Tabs for Skin, Tattoo and Clothes.
+Textures just have to get added into the inventory of the HUD with the right names, the script doesn't need to get changed.
