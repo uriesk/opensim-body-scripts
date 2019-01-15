@@ -1,4 +1,4 @@
-//### body-main.lsl
+//### body-layers.lsl
 // script-version: 0.8
 // === If you don't know what to do here, don't worry, there is some documentation ===
 // (ask around, someone will be able to give it to you)
@@ -408,10 +408,6 @@ default
                 {
                     string s_base64 = llList2String(gl_textureSets, i_found);
                     setTextureBase64(s_base64, s_uuid);
-                    if (llKey2Name((key)s_uuid) == "transparent")
-                    {
-                        readBase64AlphaString(s_base64, 1, FALSE);
-                    }
                 }
             }
             return;
